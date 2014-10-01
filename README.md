@@ -27,6 +27,16 @@ of Message Oriented Middleware (MOM).
                +------------------------------------+
 
 
+### Topic
+
+System/SubSystem0/Device0/Param0
+
+### Broker
+
+*   centralized broker
+*   clustered broker
+*   distributed broker
+
 ### TODO
 *   rename to mhub
 *   cluster of brokers, scales with the number of MQTT clients
