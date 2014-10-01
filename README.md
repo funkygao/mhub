@@ -15,7 +15,14 @@ of Message Oriented Middleware (MOM).
                               |
                       publish | subscribe
                               |
-                            broker
+                              | MQTT
+                              |               cluster
+               +------------------------------------+
+               |                                    |
+               |              batch                 |
+               |    broker ------------ broker      |
+               |                                    |
+               +------------------------------------+
 
 
 ### TODO
