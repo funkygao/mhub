@@ -15,6 +15,8 @@ of Message Oriented Middleware (MOM).
                               |
                       publish | subscribe
                               |
+                              | msg(cmd/data)
+                              |
                               | MQTT
                               |               cluster
                +------------------------------------+
@@ -27,4 +29,4 @@ of Message Oriented Middleware (MOM).
 
 ### TODO
 *   rename to mhub
-*   cluster of brokers
+*   cluster of brokers, scales with the number of MQTT clients
