@@ -1,3 +1,0 @@
-gomqtt
-======
-A MQTT broker.
