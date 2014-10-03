@@ -9,18 +9,15 @@ import (
 	"time"
 )
 
-var NextClientMessageId map[string]uint16 = make(map[string]uint16)
-var g_next_client_id_lock *sync.Mutex = new(sync.Mutex)
-
 type ClientRep struct {
-	ClientId string
-	Conn *net.Conn
-	WriteLock *sync.Mutex
-	LastTime int64 // Last Unix timestamp when recieved message from this client
-	Shuttingdown chan uint8
+	ClientId      string
+	Conn          *net.Conn
+	WriteLock     *sync.Mutex
+	LastTime      int64 // Last Unix timestamp when recieved message from this client
+	Shuttingdown  chan uint8
 	Subscriptions map[string]uint8
-	Mqtt *Mqtt
-	Disconnected bool
+	Mqtt          *Mqtt
+	Disconnected  bool
 }
 
 func (cr *ClientRep) UpdateLastTime() {

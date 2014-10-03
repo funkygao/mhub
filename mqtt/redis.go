@@ -3,21 +3,17 @@
 package mqtt
 
 import (
-	"github.com/garyburd/redigo/redis"
-	log "github.com/cihub/seelog"
 	"bytes"
-    "encoding/gob"
-	"sync"
+	"encoding/gob"
 	"fmt"
+	log "github.com/cihub/seelog"
+	"github.com/garyburd/redigo/redis"
 	"time"
 )
-
-var g_redis_lock *sync.Mutex = new(sync.Mutex)
 
 type RedisClient struct {
 	Conn *redis.Conn
 }
-
 
 func StartRedisClient() *RedisClient {
 	conn, err := redis.Dial("tcp", ":6379")
@@ -45,7 +41,7 @@ func ping_pong_redis(client *RedisClient, interval int) {
 	}
 }
 
-func (client* RedisClient) Reconnect() {
+func (client *RedisClient) Reconnect() {
 	log.Debugf("aqquiring g_redis_lock")
 
 	conn, err := redis.Dial("tcp", ":6379")
@@ -113,7 +109,7 @@ func (client *RedisClient) FetchNoLock(key string, value interface{}) int {
 	dec := gob.NewDecoder(buf)
 	err = dec.Decode(value)
 
-	if (err != nil) {
+	if err != nil {
 		panic(fmt.Sprintf("gob decode failed, key=(%s), value=(%s), error:%s", key, str, err))
 	}
 	return 0
@@ -124,7 +120,7 @@ func (client *RedisClient) GetSubsClients() []string {
 	defer g_redis_lock.Unlock()
 	keys, _ := redis.Values((*client.Conn).Do("KEYS", "gossipd.client-subs.*"))
 	clients := make([]string, 0)
-	for _, key := range(keys) {
+	for _, key := range keys {
 		clients = append(clients, string(key.([]byte)))
 	}
 	return clients
@@ -182,7 +178,7 @@ func (client *RedisClient) RemoveAllFlyingMessagesForClient(client_id string) {
 }
 
 func (client *RedisClient) AddFlyingMessage(dest_id string,
-	                                        fly_msg *FlyingMessage) {
+	fly_msg *FlyingMessage) {
 
 	messages := *client.GetFlyingMessagesForClient(dest_id)
 	messages[fly_msg.ClientMessageId] = *fly_msg
