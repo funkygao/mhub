@@ -1,5 +1,5 @@
 {
-    listen_addr: ":9002"
+    listen_addr: ":1883"
 
     redis: {
         servers: [

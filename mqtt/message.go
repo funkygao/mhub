@@ -6,6 +6,27 @@ import (
 	"sync/atomic"
 )
 
+// byte1
+// ==============================
+// 7     6 5 4   3   2      1   0
+// |         |   |   |      |   |
+// [ msg typ ] [dup] [qos lv] [retain]
+//
+// byte2
+// ==============================
+// 7                            0
+// |                            |
+// [    remaining length        ]
+//
+// all data values are in big-endian order
+type FixedHeader struct {
+	MessageType uint8
+	DupFlag     bool
+	Retain      bool
+	QosLevel    uint8
+	Length      uint32
+}
+
 /*
  This is the type represents a message received from publisher.
  FlyingMessage(message should be delivered to specific subscribers)
@@ -13,13 +34,13 @@ import (
 */
 type MqttMessage struct {
 	Topic          string
-	Payload        string
+	Payload        string // just a sequence of bytes, up to 256MB
 	Qos            uint8
 	SenderClientId string
 	MessageId      uint16
 	InternalId     uint64
 	CreatedAt      int64
-	Retain         bool
+	Retain         bool // catch up mechanism
 }
 
 func (msg *MqttMessage) Show() {
@@ -32,6 +53,10 @@ func (msg *MqttMessage) Show() {
 	fmt.Println("InternalId:", msg.InternalId)
 	fmt.Println("CreatedAt:", msg.CreatedAt)
 	fmt.Println("Retain:", msg.Retain)
+}
+
+func (this *MqttMessage) SetPayload(payload []byte) {
+	this.Payload = string(payload)
 }
 
 func (msg *MqttMessage) RedisKey() string {

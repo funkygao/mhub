@@ -35,3 +35,14 @@ const (
 	BAD_USERNAME_OR_PASSWORD
 	NOT_AUTHORIZED
 )
+
+const (
+	QOS_AT_MOST_ONCE = uint8(iota)
+	QOS_AT_LEAST_ONCE
+	QOS_EXACTLY_ONCE
+)
+
+const (
+	PROTOCOL_NAME = "MQIsdp"
+	PROTOCOL_VER  = 3
+)

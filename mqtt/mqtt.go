@@ -227,6 +227,7 @@ type Mqtt struct {
 	ReturnCode                                                                    uint8
 }
 
+// CleanSession: discard all state info at conn/disconn
 type ConnectFlags struct {
 	UsernameFlag, PasswordFlag, WillRetain, WillFlag, CleanSession bool
 	WillQos                                                        uint8
@@ -242,12 +243,4 @@ type ConnectInfo struct {
 	WillFlag     bool
 	CleanSession bool
 	Keepalive    uint16
-}
-
-type FixedHeader struct {
-	MessageType uint8
-	DupFlag     bool
-	Retain      bool
-	QosLevel    uint8
-	Length      uint32
 }
