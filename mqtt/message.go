@@ -22,8 +22,8 @@ import (
 type FixedHeader struct {
 	MessageType uint8
 	DupFlag     bool
-	Retain      bool
 	QosLevel    uint8
+	Retain      bool
 	Length      uint32
 }
 

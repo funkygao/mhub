@@ -7,11 +7,11 @@ import (
 
 var (
 	routings = map[uint8]Handler{
-		CONNECT:    HandleConnect,
-		PUBLISH:    HandlePublish,
-		SUBSCRIBE:  HandleSubscribe,
-		PINGREQ:    HandlePingreq,
-		DISCONNECT: HandleDisconnect,
+		MSG_TYPE_CONNECT:    HandleConnect,
+		MSG_TYPE_PUBLISH:    HandlePublish,
+		MSG_TYPE_SUBSCRIBE:  HandleSubscribe,
+		MSG_TYPE_PINGREQ:    HandlePingreq,
+		MSG_TYPE_DISCONNECT: HandleDisconnect,
 	}
 )
 

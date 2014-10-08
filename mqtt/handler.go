@@ -11,7 +11,6 @@ import (
 
 type Handler func(mqtt *Mqtt, conn *net.Conn, client **Client)
 
-// Handle CONNECT
 func HandleConnect(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	//mqtt.Show()
 	client_id := mqtt.ClientId
@@ -71,7 +70,7 @@ func HandleConnect(mqtt *Mqtt, conn *net.Conn, client **Client) {
 }
 
 func SendConnack(rc uint8, conn *net.Conn, lock *sync.Mutex) {
-	resp := CreateMqtt(CONNACK)
+	resp := CreateMqtt(MSG_TYPE_CONNACK)
 	resp.ReturnCode = rc
 
 	bytes, _ := Encode(resp)
@@ -113,7 +112,7 @@ func HandlePublish(mqtt *Mqtt, conn *net.Conn, client **Client) {
 }
 
 func SendPuback(msg_id uint16, conn *net.Conn, lock *sync.Mutex) {
-	resp := CreateMqtt(PUBACK)
+	resp := CreateMqtt(MSG_TYPE_PUBACK)
 	resp.MessageId = msg_id
 	bytes, _ := Encode(resp)
 	MqttSendToClient(bytes, conn, lock)
@@ -174,7 +173,7 @@ func HandleSubscribe(mqtt *Mqtt, conn *net.Conn, client **Client) {
 }
 
 func SendSuback(msg_id uint16, qos_list []uint8, conn *net.Conn, lock *sync.Mutex) {
-	resp := CreateMqtt(SUBACK)
+	resp := CreateMqtt(MSG_TYPE_SUBACK)
 	resp.MessageId = msg_id
 	resp.Topics_qos = qos_list
 
@@ -226,7 +225,7 @@ func HandleUnsubscribe(mqtt *Mqtt, conn *net.Conn, client **Client) {
 }
 
 func SendUnsuback(msg_id uint16, conn *net.Conn, lock *sync.Mutex) {
-	resp := CreateMqtt(UNSUBACK)
+	resp := CreateMqtt(MSG_TYPE_UNSUBACK)
 	resp.MessageId = msg_id
 	bytes, _ := Encode(resp)
 	MqttSendToClient(bytes, conn, lock)
@@ -250,7 +249,7 @@ func HandlePingreq(mqtt *Mqtt, conn *net.Conn, client **Client) {
 }
 
 func SendPingresp(conn *net.Conn, lock *sync.Mutex) {
-	resp := CreateMqtt(PINGRESP)
+	resp := CreateMqtt(MSG_TYPE_PINGRESP)
 	bytes, _ := Encode(resp)
 	MqttSendToClient(bytes, conn, lock)
 }
@@ -478,7 +477,7 @@ func DeliverMessage(dest_client_id string, qos uint8, msg *MqttMessage) {
 	}
 
 	// FIXME: Add code to deal with failure
-	resp := CreateMqtt(PUBLISH)
+	resp := CreateMqtt(MSG_TYPE_PUBLISH)
 	resp.TopicName = msg.Topic
 	if qos > 0 {
 		resp.MessageId = message_id
