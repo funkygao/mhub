@@ -2,6 +2,7 @@ package node
 
 import (
 	"github.com/funkygao/gomqtt/config"
+	log "github.com/funkygao/log4go"
 )
 
 type Node struct {
@@ -17,6 +18,11 @@ func New(cf *config.Config) (this *Node) {
 }
 
 func (this *Node) ServeForever() {
-	<-this.stopChan
+	log.Info("starting node: %+v", *this)
 
+	this.joinCluster()
+
+	this.serveMqtt()
+
+	<-this.stopChan
 }

@@ -1,4 +1,6 @@
 {
+    listen_addr: ":9002"
+
     redis: {
         servers: [
         ]
