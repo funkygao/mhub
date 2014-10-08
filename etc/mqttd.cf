@@ -1,2 +1,8 @@
 {
+    listen_addr: ":1883"
+
+    redis: {
+        servers: [
+        ]
+    }
 }

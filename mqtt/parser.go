@@ -62,7 +62,7 @@ func DecodeAfterFixedHeader(fixed_header *FixedHeader, buf []byte) (*Mqtt, error
 	}
 
 	switch msgType {
-	case CONNECT:
+	case MSG_TYPE_CONNECT:
 		{
 			mqtt.ProtocolName = getString(buf, &idx)
 			mqtt.ProtocolVersion = getUint8(buf, &idx)
@@ -80,7 +80,7 @@ func DecodeAfterFixedHeader(fixed_header *FixedHeader, buf []byte) (*Mqtt, error
 				mqtt.Password = getString(buf, &idx)
 			}
 		}
-	case CONNACK:
+	case MSG_TYPE_CONNACK:
 		{
 			idx += 1
 			mqtt.ReturnCode = uint8(getUint8(buf, &idx))
@@ -88,7 +88,7 @@ func DecodeAfterFixedHeader(fixed_header *FixedHeader, buf []byte) (*Mqtt, error
 				return nil, errors.New("ReturnCode is invalid!")
 			}
 		}
-	case PUBLISH:
+	case MSG_TYPE_PUBLISH:
 		{
 			mqtt.TopicName = getString(buf, &idx)
 			if qos := mqtt.FixedHeader.QosLevel; qos == 1 || qos == 2 {
@@ -97,11 +97,11 @@ func DecodeAfterFixedHeader(fixed_header *FixedHeader, buf []byte) (*Mqtt, error
 			mqtt.Data = buf[idx:len(buf)]
 			idx = len(buf)
 		}
-	case PUBACK, PUBREC, PUBREL, PUBCOMP, UNSUBACK:
+	case MSG_TYPE_PUBACK, MSG_TYPE_PUBREC, MSG_TYPE_PUBREL, MSG_TYPE_PUBCOMP, MSG_TYPE_UNSUBACK:
 		{
 			mqtt.MessageId = getUint16(buf, &idx)
 		}
-	case SUBSCRIBE:
+	case MSG_TYPE_SUBSCRIBE:
 		{
 			if qos := mqtt.FixedHeader.QosLevel; qos == 1 || qos == 2 {
 				mqtt.MessageId = getUint16(buf, &idx)
@@ -115,7 +115,7 @@ func DecodeAfterFixedHeader(fixed_header *FixedHeader, buf []byte) (*Mqtt, error
 			mqtt.Topics = topics
 			mqtt.Topics_qos = topics_qos
 		}
-	case SUBACK:
+	case MSG_TYPE_SUBACK:
 		{
 			mqtt.MessageId = getUint16(buf, &idx)
 			topics_qos := make([]uint8, 0)
@@ -124,7 +124,7 @@ func DecodeAfterFixedHeader(fixed_header *FixedHeader, buf []byte) (*Mqtt, error
 			}
 			mqtt.Topics_qos = topics_qos
 		}
-	case UNSUBSCRIBE:
+	case MSG_TYPE_UNSUBSCRIBE:
 		{
 			if qos := mqtt.FixedHeader.QosLevel; qos == 1 || qos == 2 {
 				mqtt.MessageId = getUint16(buf, &idx)
@@ -135,19 +135,19 @@ func DecodeAfterFixedHeader(fixed_header *FixedHeader, buf []byte) (*Mqtt, error
 			}
 			mqtt.Topics = topics
 		}
-	case PINGREQ:
+	case MSG_TYPE_PINGREQ:
 		{
 			// Nothing to do there
 			// Here is one of the spots go-mode.el will
 			// break in 'go-toto-beginning-of-line'
 
 		}
-	case PINGRESP:
+	case MSG_TYPE_PINGRESP:
 		{
 			// Nothing to do there
 
 		}
-	case DISCONNECT:
+	case MSG_TYPE_DISCONNECT:
 		{
 			// Nothing to do there
 		}
@@ -214,22 +214,22 @@ func CreateMqtt(msg_type uint8) *Mqtt {
 
 	switch msg_type {
 
-	case CONNACK:
+	case MSG_TYPE_CONNACK:
 		{
 		}
-	case SUBACK:
+	case MSG_TYPE_SUBACK:
 		{
 		}
-	case PUBACK:
+	case MSG_TYPE_PUBACK:
 		{
 		}
-	case UNSUBACK:
+	case MSG_TYPE_UNSUBACK:
 		{
 		}
-	case PINGRESP:
+	case MSG_TYPE_PINGRESP:
 		{
 		}
-	case PUBLISH:
+	case MSG_TYPE_PUBLISH:
 		{
 		}
 
@@ -251,7 +251,7 @@ func Encode(mqtt *Mqtt) ([]byte, error) {
 	var headerbuf, buf bytes.Buffer
 	setHeader(mqtt.FixedHeader, &headerbuf)
 	switch mqtt.FixedHeader.MessageType {
-	case CONNECT:
+	case MSG_TYPE_CONNECT:
 		{
 			setString(mqtt.ProtocolName, &buf)
 			setUint8(mqtt.ProtocolVersion, &buf)
@@ -269,12 +269,12 @@ func Encode(mqtt *Mqtt) ([]byte, error) {
 				setString(mqtt.Password, &buf)
 			}
 		}
-	case CONNACK:
+	case MSG_TYPE_CONNACK:
 		{
 			buf.WriteByte(byte(0))
 			setUint8(uint8(mqtt.ReturnCode), &buf)
 		}
-	case PUBLISH:
+	case MSG_TYPE_PUBLISH:
 		{
 			setString(mqtt.TopicName, &buf)
 			if qos := mqtt.FixedHeader.QosLevel; qos == 1 || qos == 2 {
@@ -282,11 +282,11 @@ func Encode(mqtt *Mqtt) ([]byte, error) {
 			}
 			buf.Write(mqtt.Data)
 		}
-	case PUBACK, PUBREC, PUBREL, PUBCOMP, UNSUBACK:
+	case MSG_TYPE_PUBACK, MSG_TYPE_PUBREC, MSG_TYPE_PUBREL, MSG_TYPE_PUBCOMP, MSG_TYPE_UNSUBACK:
 		{
 			setUint16(mqtt.MessageId, &buf)
 		}
-	case SUBSCRIBE:
+	case MSG_TYPE_SUBSCRIBE:
 		{
 			if qos := mqtt.FixedHeader.QosLevel; qos == 1 || qos == 2 {
 				setUint16(mqtt.MessageId, &buf)
@@ -296,14 +296,14 @@ func Encode(mqtt *Mqtt) ([]byte, error) {
 				setUint8(mqtt.Topics_qos[i], &buf)
 			}
 		}
-	case SUBACK:
+	case MSG_TYPE_SUBACK:
 		{
 			setUint16(mqtt.MessageId, &buf)
 			for i := 0; i < len(mqtt.Topics_qos); i += 1 {
 				setUint8(mqtt.Topics_qos[i], &buf)
 			}
 		}
-	case UNSUBSCRIBE:
+	case MSG_TYPE_UNSUBSCRIBE:
 		{
 			if qos := mqtt.FixedHeader.QosLevel; qos == 1 || qos == 2 {
 				setUint16(mqtt.MessageId, &buf)

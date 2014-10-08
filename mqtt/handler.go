@@ -1,20 +1,16 @@
 package mqtt
 
 import (
-	"net"
-	log "github.com/cihub/seelog"
-	"time"
-	"sync"
 	"fmt"
+	log "github.com/cihub/seelog"
+	"net"
 	"runtime/debug"
+	"sync"
+	"time"
 )
 
-const (
-	SEND_WILL = uint8(iota)
-	DONT_SEND_WILL
-)
+type Handler func(mqtt *Mqtt, conn *net.Conn, client **Client)
 
-// Handle CONNECT
 func HandleConnect(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	//mqtt.Show()
 	client_id := mqtt.ClientId
@@ -74,7 +70,7 @@ func HandleConnect(mqtt *Mqtt, conn *net.Conn, client **Client) {
 }
 
 func SendConnack(rc uint8, conn *net.Conn, lock *sync.Mutex) {
-	resp := CreateMqtt(CONNACK)
+	resp := CreateMqtt(MSG_TYPE_CONNACK)
 	resp.ReturnCode = rc
 
 	bytes, _ := Encode(resp)
@@ -105,7 +101,7 @@ func HandlePublish(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	mqtt_msg := CreateMqttMessage(topic, payload, client_id, qos, message_id, timestamp, retain)
 	msg_internal_id := mqtt_msg.InternalId
 	log.Debugf("Created new MQTT message, internal id:(%s)", msg_internal_id)
-	
+
 	PublishMessage(mqtt_msg)
 
 	// Send PUBACK if QOS is 1
@@ -116,7 +112,7 @@ func HandlePublish(mqtt *Mqtt, conn *net.Conn, client **Client) {
 }
 
 func SendPuback(msg_id uint16, conn *net.Conn, lock *sync.Mutex) {
-	resp := CreateMqtt(PUBACK)
+	resp := CreateMqtt(MSG_TYPE_PUBACK)
 	resp.MessageId = msg_id
 	bytes, _ := Encode(resp)
 	MqttSendToClient(bytes, conn, lock)
@@ -162,7 +158,7 @@ func HandleSubscribe(mqtt *Mqtt, conn *net.Conn, client **Client) {
 		if !client_rep.Mqtt.ConnectFlags.CleanSession {
 			// Store subscriptions to redis
 			key := fmt.Sprintf("gossipd.client-subs.%s", client_id)
-			G_redis_client.Store(key, client_rep.Subscriptions)			
+			G_redis_client.Store(key, client_rep.Subscriptions)
 		}
 
 		log.Debugf("finding retained message for (%s)", topic)
@@ -177,7 +173,7 @@ func HandleSubscribe(mqtt *Mqtt, conn *net.Conn, client **Client) {
 }
 
 func SendSuback(msg_id uint16, qos_list []uint8, conn *net.Conn, lock *sync.Mutex) {
-	resp := CreateMqtt(SUBACK)
+	resp := CreateMqtt(MSG_TYPE_SUBACK)
 	resp.MessageId = msg_id
 	resp.Topics_qos = qos_list
 
@@ -229,7 +225,7 @@ func HandleUnsubscribe(mqtt *Mqtt, conn *net.Conn, client **Client) {
 }
 
 func SendUnsuback(msg_id uint16, conn *net.Conn, lock *sync.Mutex) {
-	resp := CreateMqtt(UNSUBACK)
+	resp := CreateMqtt(MSG_TYPE_UNSUBACK)
 	resp.MessageId = msg_id
 	bytes, _ := Encode(resp)
 	MqttSendToClient(bytes, conn, lock)
@@ -253,7 +249,7 @@ func HandlePingreq(mqtt *Mqtt, conn *net.Conn, client **Client) {
 }
 
 func SendPingresp(conn *net.Conn, lock *sync.Mutex) {
-	resp := CreateMqtt(PINGRESP)
+	resp := CreateMqtt(MSG_TYPE_PINGRESP)
 	bytes, _ := Encode(resp)
 	MqttSendToClient(bytes, conn, lock)
 }
@@ -291,9 +287,8 @@ func HandlePuback(mqtt *Mqtt, conn *net.Conn, client **Client) {
 		delete(*messages, message_id)
 		G_redis_client.SetFlyingMessagesForClient(client_id, messages)
 		log.Debugf("acked flying message(id=%d), client:(%s)", message_id, client_id)
-	}	
+	}
 }
-
 
 /* Helper functions */
 
@@ -324,10 +319,10 @@ func CheckTimeout(client *Client) {
 
 	for {
 		select {
-		case <- ticker.C:
+		case <-ticker.C:
 			now := time.Now().Unix()
 			lastTimestamp := client.LastTime
-			deadline := int64(float64(lastTimestamp) + float64(interval) * 1.5)
+			deadline := int64(float64(lastTimestamp) + float64(interval)*1.5)
 
 			if deadline < now {
 				ForceDisconnect(client, G_clients_lock, SEND_WILL)
@@ -336,9 +331,9 @@ func CheckTimeout(client *Client) {
 			} else {
 				log.Debugf("client(%s) will be kicked out in %d seconds",
 					client_id,
-					deadline - now)
+					deadline-now)
 			}
-		case <- client.Shuttingdown:
+		case <-client.Shuttingdown:
 			log.Debugf("client(%s) is being shutting down, stopped timeout checker", client_id)
 			return
 		}
@@ -369,7 +364,7 @@ func ForceDisconnect(client *Client, lock *sync.Mutex, send_will uint8) {
 		// remove her subscriptions
 		log.Debugf("Removing subscriptions for (%s)", client_id)
 		G_subs_lock.Lock()
-		for topic, _ := range(client.Subscriptions) {
+		for topic, _ := range client.Subscriptions {
 			delete(G_subs[topic], client_id)
 			if len(G_subs[topic]) == 0 {
 				delete(G_subs, topic)
@@ -429,7 +424,7 @@ func PublishMessage(mqtt_msg *MqttMessage) {
 	G_subs_lock.Lock()
 	subs, found := G_subs[topic]
 	if found {
-		for dest_id, dest_qos := range(subs) {
+		for dest_id, dest_qos := range subs {
 			go Deliver(dest_id, dest_qos, mqtt_msg)
 			log.Debugf("Started deliver job for %s", dest_id)
 		}
@@ -445,7 +440,7 @@ func DeliverOnConnection(client_id string) {
 	G_redis_client.SetFlyingMessagesForClient(client_id, &empty)
 	log.Debugf("client(%s), all flying messages put in pipeline, removed records in redis", client_id)
 
-	for message_id, msg := range(*messages) {
+	for message_id, msg := range *messages {
 		internal_id := msg.MessageInternalId
 		mqtt_msg := GetMqttMessageById(internal_id)
 		log.Debugf("re-delivering message(id=%d, internal_id=%d) for %s",
@@ -482,14 +477,14 @@ func DeliverMessage(dest_client_id string, qos uint8, msg *MqttMessage) {
 	}
 
 	// FIXME: Add code to deal with failure
-	resp := CreateMqtt(PUBLISH)
+	resp := CreateMqtt(MSG_TYPE_PUBLISH)
 	resp.TopicName = msg.Topic
 	if qos > 0 {
 		resp.MessageId = message_id
 	}
 	resp.FixedHeader.QosLevel = qos
 	resp.Data = []byte(msg.Payload)
-	
+
 	bytes, _ := Encode(resp)
 
 	lock.Lock()
@@ -542,7 +537,7 @@ func RetryDeliver(sleep uint64, dest_client_id string, qos uint8, msg *MqttMessa
 		}
 	}()
 
-	if sleep > 3600 * 4 {
+	if sleep > 3600*4 {
 		log.Debugf("too long retry delay(%s), abort retry deliver", sleep)
 		return
 	}
@@ -552,8 +547,8 @@ func RetryDeliver(sleep uint64, dest_client_id string, qos uint8, msg *MqttMessa
 	if G_redis_client.IsFlyingMessagePendingAck(dest_client_id, msg.MessageId) {
 		DeliverMessage(dest_client_id, qos, msg)
 		log.Debugf("Retried delivering message %s:%d, will sleep %d seconds before next attampt",
-			dest_client_id, msg.MessageId, sleep * 2)
-		RetryDeliver(sleep * 2, dest_client_id, qos, msg)
+			dest_client_id, msg.MessageId, sleep*2)
+		RetryDeliver(sleep*2, dest_client_id, qos, msg)
 	} else {
 		log.Debugf("message (%s:%d) is not pending ACK, stop retry delivering",
 			dest_client_id, msg.MessageId)
@@ -571,22 +566,21 @@ func RemoveAllSubscriptionsOnConnect(client_id string) {
 	G_redis_client.Delete(key)
 
 	G_subs_lock.Lock()
-	for topic, _ := range(*subs) {
+	for topic, _ := range *subs {
 		delete(G_subs[topic], client_id)
 	}
 	G_subs_lock.Unlock()
-	
+
 }
 
 func showSubscriptions() {
 	// Disable for now
 	return
 	fmt.Printf("Global Subscriptions: %d topics\n", len(G_subs))
-	for topic, subs := range(G_subs) {
+	for topic, subs := range G_subs {
 		fmt.Printf("\t%s: %d subscriptions\n", topic, len(subs))
-		for client_id, qos := range(subs) {
+		for client_id, qos := range subs {
 			fmt.Println("\t\t", client_id, qos)
 		}
 	}
 }
-

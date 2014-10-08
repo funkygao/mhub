@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/funkygao/golib/server"
+	"github.com/funkygao/gomqtt/config"
+	"github.com/funkygao/gomqtt/node"
 	"runtime/debug"
 )
 
@@ -17,4 +19,7 @@ func main() {
 	server := server.NewServer("mqttd")
 	server.LoadConfig(option.configFile)
 	server.Launch()
+
+	node := node.New(config.LoadConfig(server.Conf))
+	node.ServeForever()
 }

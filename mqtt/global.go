@@ -21,3 +21,10 @@ var g_next_client_id_lock *sync.Mutex = new(sync.Mutex)
 
 var G_topicss map[string]*Topic = make(map[string]*Topic)
 var G_topics_lockk *sync.Mutex = new(sync.Mutex)
+
+var g_next_mqtt_message_internal_id uint64 = 0
+
+// InternalId -> Message
+// FIXME: Add code to store G_messages to disk
+var G_messages map[uint64]*MqttMessage = make(map[uint64]*MqttMessage)
+var G_messages_lock *sync.Mutex = new(sync.Mutex)
