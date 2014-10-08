@@ -17,7 +17,7 @@ func HandleConnect(mqtt *Mqtt, conn *net.Conn, client **Client) {
 
 	log.Debugf("Hanling CONNECT, client id:(%s)", client_id)
 
-	if len(client_id) > 23 {
+	if len(client_id) > MAX_CLIENT_ID_LEN {
 		log.Debugf("client id(%s) is longer than 23, will send IDENTIFIER_REJECTED", client_id)
 		SendConnack(IDENTIFIER_REJECTED, conn, nil)
 		return
@@ -35,19 +35,16 @@ func HandleConnect(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	if existed {
 		log.Debugf("%s existed, will close old connection", client_id)
 		ForceDisconnect(client_rep, nil, DONT_SEND_WILL)
-
 	} else {
 		log.Debugf("Appears to be new client, will create Client")
 	}
 
 	client_rep = CreateClient(client_id, conn, mqtt)
-
 	G_clients[client_id] = client_rep
 	G_clients_lock.Unlock()
 
 	*client = client_rep
 	go CheckTimeout(client_rep)
-	log.Debugf("Timeout checker go-routine started")
 
 	if !client_rep.Mqtt.ConnectFlags.CleanSession {
 		// deliver flying messages
@@ -333,6 +330,7 @@ func CheckTimeout(client *Client) {
 					client_id,
 					deadline-now)
 			}
+
 		case <-client.Shuttingdown:
 			log.Debugf("client(%s) is being shutting down, stopped timeout checker", client_id)
 			return

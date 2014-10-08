@@ -19,6 +19,7 @@ const (
 
 const (
 	FIXED_HEADER_SIZE = 2
+	MAX_CLIENT_ID_LEN = 23
 )
 
 const (
