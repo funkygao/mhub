@@ -100,11 +100,6 @@ type FlyingMessage struct {
 	ClientMessageId uint16 // The message id to be used in MQTT packet
 }
 
-const (
-	PENDING_PUB = uint8(iota + 1)
-	PENDING_ACK
-)
-
 func CreateFlyingMessage(dest_id string, message_internal_id uint64,
 	qos uint8, status uint8, message_id uint16) *FlyingMessage {
 	msg := new(FlyingMessage)

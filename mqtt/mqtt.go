@@ -215,15 +215,6 @@ func MessageTypeStr(mt uint8) string {
 	return strArray[mt]
 }
 
-const (
-	ACCEPTED = uint8(iota)
-	UNACCEPTABLE_PROTOCOL_VERSION
-	IDENTIFIER_REJECTED
-	SERVER_UNAVAILABLE
-	BAD_USERNAME_OR_PASSWORD
-	NOT_AUTHORIZED
-)
-
 type Mqtt struct {
 	FixedHeader                                                                   *FixedHeader
 	ProtocolName, TopicName, ClientId, WillTopic, WillMessage, Username, Password string

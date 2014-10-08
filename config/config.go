@@ -4,17 +4,11 @@ import (
 	conf "github.com/funkygao/jsconf"
 )
 
-var (
-	Conf *Config
-)
-
 type Config struct {
 }
 
-func init() {
-	Conf = new(Config)
-}
-
-func LoadConfig(cf *conf.Conf) {
+func LoadConfig(cf *conf.Conf) *Config {
+	this := new(Config)
+	return this
 
 }
