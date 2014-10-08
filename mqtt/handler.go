@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+type Handler func(mqtt *Mqtt, conn *net.Conn, client **Client)
+
 // Handle CONNECT
 func HandleConnect(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	//mqtt.Show()
