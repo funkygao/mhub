@@ -18,6 +18,10 @@ const (
 )
 
 const (
+	FIXED_HEADER_SIZE = 2
+)
+
+const (
 	SEND_WILL = uint8(iota)
 	DONT_SEND_WILL
 )

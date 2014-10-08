@@ -2,7 +2,9 @@ package mqtt
 
 import (
 	"fmt"
-	"sync"
+	log "github.com/cihub/seelog"
+	"io"
+	"net"
 	"sync/atomic"
 )
 
@@ -27,6 +29,29 @@ type FixedHeader struct {
 	Length      uint32
 }
 
+func (this *FixedHeader) messageTypeStr() string {
+	var strArray = []string{
+		"reserved",
+		"CONNECT",
+		"CONNACK",
+		"PUBLISH",
+		"PUBACK",
+		"PUBREC",
+		"PUBREL",
+		"PUBCOMP",
+		"SUBSCRIBE",
+		"SUBACK",
+		"UNSUBSCRIBE",
+		"UNSUBACK",
+		"PINGREQ",
+		"PINGRESP",
+		"DISCONNEC"}
+	if this.MessageType > uint8(len(strArray)) {
+		return "Undefined MessageType"
+	}
+	return strArray[this.MessageType]
+}
+
 /*
  This is the type represents a message received from publisher.
  FlyingMessage(message should be delivered to specific subscribers)
@@ -43,18 +68,6 @@ type MqttMessage struct {
 	Retain         bool // catch up mechanism
 }
 
-func (msg *MqttMessage) Show() {
-	fmt.Printf("MQTT Message:\n")
-	fmt.Println("Topic:", msg.Topic)
-	fmt.Println("Payload:", msg.Payload)
-	fmt.Println("Qos:", msg.Qos)
-	fmt.Println("SenderClientId:", msg.SenderClientId)
-	fmt.Println("MessageId:", msg.MessageId)
-	fmt.Println("InternalId:", msg.InternalId)
-	fmt.Println("CreatedAt:", msg.CreatedAt)
-	fmt.Println("Retain:", msg.Retain)
-}
-
 func (this *MqttMessage) SetPayload(payload []byte) {
 	this.Payload = string(payload)
 }
@@ -68,11 +81,6 @@ func (msg *MqttMessage) Store() {
 	G_redis_client.Store(key, msg)
 	G_redis_client.Expire(key, 7*24*3600)
 }
-
-// InternalId -> Message
-// FIXME: Add code to store G_messages to disk
-var G_messages map[uint64]*MqttMessage = make(map[uint64]*MqttMessage)
-var G_messages_lock *sync.Mutex = new(sync.Mutex)
 
 func CreateMqttMessage(topic, payload, sender_id string,
 	qos uint8, message_id uint16,
@@ -97,7 +105,127 @@ func CreateMqttMessage(topic, payload, sender_id string,
 	return msg
 }
 
-var g_next_mqtt_message_internal_id uint64 = 0
+func ReadFixedHeader(conn *net.Conn) *FixedHeader {
+	var buf = make([]byte, 2)
+	n, _ := io.ReadFull(*conn, buf)
+	if n != len(buf) {
+		log.Debug("read header failed")
+		return nil
+	}
+
+	byte1 := buf[0]
+	header := new(FixedHeader)
+	header.MessageType = uint8(byte1 & 0xF0 >> 4)
+	header.DupFlag = byte1&0x08 > 0
+	header.QosLevel = uint8(byte1 & 0x06 >> 1)
+	header.Retain = byte1&0x01 > 0
+
+	byte2 := buf[1]
+	header.Length = decodeVarLength(byte2, conn)
+	return header
+}
+
+func ReadCompleteCommand(conn *net.Conn) (*FixedHeader, []byte) {
+	fixed_header := ReadFixedHeader(conn)
+	if fixed_header == nil {
+		log.Debug("failed to read fixed header")
+		return nil, make([]byte, 0)
+	}
+	length := fixed_header.Length
+	buf := make([]byte, length)
+	n, _ := io.ReadFull(*conn, buf)
+	if uint32(n) != length {
+		panic(fmt.Sprintf("failed to read %d bytes specified in fixed header, only %d read", length, n))
+	}
+	log.Debugf("Complete command(%s) read into buffer", fixed_header.messageTypeStr())
+
+	return fixed_header, buf
+}
+
+// CONNECT parse
+func parseConnectInfo(buf []byte) *ConnectInfo {
+	var info = new(ConnectInfo)
+	info.Protocol, buf = parseUTF8(buf)
+	info.Version, buf = parseUint8(buf)
+	flagByte := buf[0]
+	log.Debug("parsing connect flag:", flagByte)
+	info.UsernameFlag = (flagByte & 0x80) > 0
+	info.PasswordFlag = (flagByte & 0x40) > 0
+	info.WillRetain = (flagByte & 0x20) > 0
+	info.WillQos = uint8(flagByte & 0x18 >> 3)
+	info.WillFlag = (flagByte & 0x04) > 0
+	info.CleanSession = (flagByte & 0x02) > 0
+	buf = buf[1:]
+	info.Keepalive, _ = parseUint16(buf)
+	return info
+}
+
+// Fixed header parse
+
+func decodeVarLength(cur byte, conn *net.Conn) uint32 {
+	length := uint32(0)
+	multi := uint32(1)
+
+	for {
+		length += multi * uint32(cur&0x7f)
+		if cur&0x80 == 0 {
+			break
+		}
+		buf := make([]byte, 1)
+		n, _ := io.ReadFull(*conn, buf)
+		if n != 1 {
+			panic("failed to read variable length in MQTT header")
+		}
+		cur = buf[0]
+		multi *= 128
+	}
+
+	return length
+}
+
+func parseUint16(buf []byte) (uint16, []byte) {
+	return uint16(buf[0]<<8) + uint16(buf[1]), buf[2:]
+}
+
+func parseUint8(buf []byte) (uint8, []byte) {
+	return uint8(buf[0]), buf[1:]
+}
+
+func parseUTF8(buf []byte) (string, []byte) {
+	length, buf := parseUint16(buf)
+	str := buf[:length]
+	return string(str), buf[length:]
+}
+
+type Mqtt struct {
+	FixedHeader                                                                   *FixedHeader
+	ProtocolName, TopicName, ClientId, WillTopic, WillMessage, Username, Password string
+	ProtocolVersion                                                               uint8
+	ConnectFlags                                                                  *ConnectFlags
+	KeepAliveTimer, MessageId                                                     uint16
+	Data                                                                          []byte
+	Topics                                                                        []string
+	Topics_qos                                                                    []uint8
+	ReturnCode                                                                    uint8
+}
+
+// CleanSession: discard all state info at conn/disconn
+type ConnectFlags struct {
+	UsernameFlag, PasswordFlag, WillRetain, WillFlag, CleanSession bool
+	WillQos                                                        uint8
+}
+
+type ConnectInfo struct {
+	Protocol     string // Must be 'MQIsdp' for now
+	Version      uint8
+	UsernameFlag bool
+	PasswordFlag bool
+	WillRetain   bool
+	WillQos      uint8
+	WillFlag     bool
+	CleanSession bool
+	Keepalive    uint16
+}
 
 func GetNextMessageInternalId() uint64 {
 	return atomic.AddUint64(&g_next_mqtt_message_internal_id, 1)
