@@ -15,7 +15,7 @@ const (
 )
 
 // Handle CONNECT
-func HandleConnect(mqtt *Mqtt, conn *net.Conn, client **ClientRep) {
+func HandleConnect(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	//mqtt.Show()
 	client_id := mqtt.ClientId
 
@@ -41,10 +41,10 @@ func HandleConnect(mqtt *Mqtt, conn *net.Conn, client **ClientRep) {
 		ForceDisconnect(client_rep, nil, DONT_SEND_WILL)
 
 	} else {
-		log.Debugf("Appears to be new client, will create ClientRep")
+		log.Debugf("Appears to be new client, will create Client")
 	}
 
-	client_rep = CreateClientRep(client_id, conn, mqtt)
+	client_rep = CreateClient(client_id, conn, mqtt)
 
 	G_clients[client_id] = client_rep
 	G_clients_lock.Unlock()
@@ -83,9 +83,9 @@ func SendConnack(rc uint8, conn *net.Conn, lock *sync.Mutex) {
 
 /* Handle PUBLISH*/
 // FIXME: support qos = 2
-func HandlePublish(mqtt *Mqtt, conn *net.Conn, client **ClientRep) {
+func HandlePublish(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	if *client == nil {
-		panic("client_resp is nil, that means we don't have ClientRep for this client sending PUBLISH")
+		panic("client_resp is nil, that means we don't have Client for this client sending PUBLISH")
 		return
 	}
 
@@ -125,9 +125,9 @@ func SendPuback(msg_id uint16, conn *net.Conn, lock *sync.Mutex) {
 
 /* Handle SUBSCRIBE */
 
-func HandleSubscribe(mqtt *Mqtt, conn *net.Conn, client **ClientRep) {
+func HandleSubscribe(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	if *client == nil {
-		panic("client_resp is nil, that means we don't have ClientRep for this client sending SUBSCRIBE")
+		panic("client_resp is nil, that means we don't have Client for this client sending SUBSCRIBE")
 		return
 	}
 
@@ -187,9 +187,9 @@ func SendSuback(msg_id uint16, qos_list []uint8, conn *net.Conn, lock *sync.Mute
 
 /* Handle UNSUBSCRIBE */
 
-func HandleUnsubscribe(mqtt *Mqtt, conn *net.Conn, client **ClientRep) {
+func HandleUnsubscribe(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	if *client == nil {
-		panic("client_resp is nil, that means we don't have ClientRep for this client sending UNSUBSCRIBE")
+		panic("client_resp is nil, that means we don't have Client for this client sending UNSUBSCRIBE")
 		return
 	}
 
@@ -237,9 +237,9 @@ func SendUnsuback(msg_id uint16, conn *net.Conn, lock *sync.Mutex) {
 
 /* Handle PINGREQ */
 
-func HandlePingreq(mqtt *Mqtt, conn *net.Conn, client **ClientRep) {
+func HandlePingreq(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	if *client == nil {
-		panic("client_resp is nil, that means we don't have ClientRep for this client sending PINGREQ")
+		panic("client_resp is nil, that means we don't have Client for this client sending PINGREQ")
 		return
 	}
 
@@ -260,9 +260,9 @@ func SendPingresp(conn *net.Conn, lock *sync.Mutex) {
 
 /* Handle DISCONNECT */
 
-func HandleDisconnect(mqtt *Mqtt, conn *net.Conn, client **ClientRep) {
+func HandleDisconnect(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	if *client == nil {
-		panic("client_resp is nil, that means we don't have ClientRep for this client sending DISCONNECT")
+		panic("client_resp is nil, that means we don't have Client for this client sending DISCONNECT")
 		return
 	}
 
@@ -270,9 +270,9 @@ func HandleDisconnect(mqtt *Mqtt, conn *net.Conn, client **ClientRep) {
 }
 
 /* Handle PUBACK */
-func HandlePuback(mqtt *Mqtt, conn *net.Conn, client **ClientRep) {
+func HandlePuback(mqtt *Mqtt, conn *net.Conn, client **Client) {
 	if *client == nil {
-		panic("client_resp is nil, that means we don't have ClientRep for this client sending DISCONNECT")
+		panic("client_resp is nil, that means we don't have Client for this client sending DISCONNECT")
 		return
 	}
 
@@ -309,7 +309,7 @@ func MqttSendToClient(bytes []byte, conn *net.Conn, lock *sync.Mutex) {
 }
 
 /* Checking timeout */
-func CheckTimeout(client *ClientRep) {
+func CheckTimeout(client *Client) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Debugf("got panic, will print stack")
@@ -346,7 +346,7 @@ func CheckTimeout(client *ClientRep) {
 	}
 }
 
-func ForceDisconnect(client *ClientRep, lock *sync.Mutex, send_will uint8) {
+func ForceDisconnect(client *Client, lock *sync.Mutex, send_will uint8) {
 	if client.Disconnected == true {
 		return
 	}

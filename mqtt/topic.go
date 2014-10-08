@@ -1,9 +1,5 @@
 package mqtt
 
-import (
-	"sync"
-)
-
 type Topic struct {
 	Content         string
 	RetainedMessage *MqttMessage

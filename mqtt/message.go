@@ -1,9 +1,9 @@
 package mqtt
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
-	"fmt"
 )
 
 /*
@@ -12,14 +12,14 @@ import (
  reference MqttMessage
 */
 type MqttMessage struct {
-	Topic string
-	Payload string
-	Qos uint8
+	Topic          string
+	Payload        string
+	Qos            uint8
 	SenderClientId string
-	MessageId uint16
-	InternalId uint64
-	CreatedAt int64
-	Retain bool
+	MessageId      uint16
+	InternalId     uint64
+	CreatedAt      int64
+	Retain         bool
 }
 
 func (msg *MqttMessage) Show() {
@@ -41,7 +41,7 @@ func (msg *MqttMessage) RedisKey() string {
 func (msg *MqttMessage) Store() {
 	key := msg.RedisKey()
 	G_redis_client.Store(key, msg)
-	G_redis_client.Expire(key, 7 * 24 * 3600)
+	G_redis_client.Expire(key, 7*24*3600)
 }
 
 // InternalId -> Message
@@ -73,35 +73,35 @@ func CreateMqttMessage(topic, payload, sender_id string,
 }
 
 var g_next_mqtt_message_internal_id uint64 = 0
+
 func GetNextMessageInternalId() uint64 {
 	return atomic.AddUint64(&g_next_mqtt_message_internal_id, 1)
 }
 
 // This is thread-safe
-func GetMqttMessageById(internal_id uint64) *MqttMessage{
+func GetMqttMessageById(internal_id uint64) *MqttMessage {
 	key := fmt.Sprintf("gossipd.mqtt-msg.%d", internal_id)
-	
+
 	msg := new(MqttMessage)
 	G_redis_client.Fetch(key, msg)
 	return msg
 }
 
-
-/* 
+/*
  This is the type represents a message should be delivered to
  specific client
 */
 type FlyingMessage struct {
-	Qos uint8 // the Qos in effect
-	DestClientId string
+	Qos               uint8 // the Qos in effect
+	DestClientId      string
 	MessageInternalId uint64 // The MqttMessage of interest
-	Status uint8  // The status of this message, like PENDING_PUB(deliver occured
-	              // when client if offline), PENDING_ACK, etc
+	Status            uint8  // The status of this message, like PENDING_PUB(deliver occured
+	// when client if offline), PENDING_ACK, etc
 	ClientMessageId uint16 // The message id to be used in MQTT packet
 }
 
-const(
-    PENDING_PUB = uint8(iota + 1)
+const (
+	PENDING_PUB = uint8(iota + 1)
 	PENDING_ACK
 )
 
@@ -115,4 +115,3 @@ func CreateFlyingMessage(dest_id string, message_internal_id uint64,
 	msg.ClientMessageId = message_id
 	return msg
 }
-

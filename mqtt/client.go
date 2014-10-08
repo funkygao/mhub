@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type ClientRep struct {
+type Client struct {
 	ClientId      string
 	Conn          *net.Conn
 	WriteLock     *sync.Mutex
@@ -20,12 +20,12 @@ type ClientRep struct {
 	Disconnected  bool
 }
 
-func (cr *ClientRep) UpdateLastTime() {
+func (cr *Client) UpdateLastTime() {
 	atomic.StoreInt64(&cr.LastTime, time.Now().Unix())
 }
 
-func CreateClientRep(client_id string, conn *net.Conn, mqtt *Mqtt) *ClientRep {
-	rep := new(ClientRep)
+func CreateClient(client_id string, conn *net.Conn, mqtt *Mqtt) *Client {
+	rep := new(Client)
 	rep.ClientId = client_id
 	rep.Conn = conn
 	rep.WriteLock = new(sync.Mutex)

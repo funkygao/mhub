@@ -5,7 +5,7 @@ import (
 )
 
 /* Glabal status */
-var G_clients map[string]*ClientRep = make(map[string]*ClientRep)
+var G_clients map[string]*Client = make(map[string]*Client)
 var G_clients_lock *sync.Mutex = new(sync.Mutex)
 
 // Map topic => sub
