@@ -3,6 +3,8 @@
 package mqtt
 
 import (
+	log "github.com/funkygao/log4go"
+	"io"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -35,6 +37,26 @@ func CreateClient(client_id string, conn *net.Conn, mqtt *Mqtt) *Client {
 	rep.Subscriptions = make(map[string]uint8)
 	rep.Disconnected = false
 	return rep
+}
+
+func (this *Client) ReadFixedHeader() *FixedHeader {
+	var buf = make([]byte, 2)
+	n, _ := io.ReadFull(*this.Conn, buf)
+	if n != len(buf) {
+		log.Debug("read header failed")
+		return nil
+	}
+
+	byte1 := buf[0]
+	header := new(FixedHeader)
+	header.MessageType = uint8(byte1 & 0xF0 >> 4)
+	header.DupFlag = byte1&0x08 > 0
+	header.QosLevel = uint8(byte1 & 0x06 >> 1)
+	header.Retain = byte1&0x01 > 0
+
+	byte2 := buf[1]
+	header.Length = decodeVarLength(byte2, this.Conn)
+	return header
 }
 
 func NextOutMessageIdForClient(client_id string) uint16 {

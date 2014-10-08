@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 )
 
+// FixedHeader, VariableHeader, Payload
 // byte1
 // ==============================
 // 7     6 5 4   3   2      1   0
@@ -25,8 +26,8 @@ type FixedHeader struct {
 	MessageType uint8
 	DupFlag     bool
 	QosLevel    uint8
-	Retain      bool
-	Length      uint32
+	Retain      bool   // only used on PUBLISH, server should hold on to the message after it has been delivered to the current subscribers
+	Length      uint32 // the number of bytes remaining within the current message, including data in the variable header and the payload
 }
 
 func (this *FixedHeader) messageTypeStr() string {
@@ -52,6 +53,65 @@ func (this *FixedHeader) messageTypeStr() string {
 	return strArray[this.MessageType]
 }
 
+func ReadFixedHeader(conn *net.Conn) *FixedHeader {
+	var buf = make([]byte, 2)
+	n, _ := io.ReadFull(*conn, buf)
+	if n != len(buf) {
+		log.Error("read header failed")
+		return nil
+	}
+
+	byte1 := buf[0]
+	header := new(FixedHeader)
+	header.MessageType = uint8(byte1 & 0xF0 >> 4)
+	header.DupFlag = byte1&0x08 > 0
+	header.QosLevel = uint8(byte1 & 0x06 >> 1)
+	header.Retain = byte1&0x01 > 0
+
+	byte2 := buf[1]
+	header.Length = decodeVarLength(byte2, conn)
+	return header
+}
+
+func decodeVarLength(cur byte, conn *net.Conn) uint32 {
+	length := uint32(0)
+	multi := uint32(1)
+
+	for {
+		length += multi * uint32(cur&0x7f) // 127
+		if cur&0x80 == 0 {                 // continuation?
+			break
+		}
+
+		buf := make([]byte, 1)
+		n, _ := io.ReadFull(*conn, buf)
+		if n != 1 {
+			panic("failed to read variable length in MQTT header")
+		}
+		cur = buf[0]
+		multi *= 128
+	}
+
+	return length
+}
+
+func ReadCompleteCommand(conn *net.Conn) (*FixedHeader, []byte) {
+	fixed_header := ReadFixedHeader(conn)
+	if fixed_header == nil {
+		log.Debug("failed to read fixed header")
+		return nil, make([]byte, 0)
+	}
+	length := fixed_header.Length
+	buf := make([]byte, length)
+	n, _ := io.ReadFull(*conn, buf)
+	if uint32(n) != length {
+		panic(fmt.Sprintf("failed to read %d bytes specified in fixed header, only %d read", length, n))
+	}
+	log.Debugf("Complete command(%s) read into buffer", fixed_header.messageTypeStr())
+
+	return fixed_header, buf
+}
+
 /*
  This is the type represents a message received from publisher.
  FlyingMessage(message should be delivered to specific subscribers)
@@ -66,10 +126,6 @@ type MqttMessage struct {
 	InternalId     uint64
 	CreatedAt      int64
 	Retain         bool // catch up mechanism
-}
-
-func (this *MqttMessage) SetPayload(payload []byte) {
-	this.Payload = string(payload)
 }
 
 func (msg *MqttMessage) RedisKey() string {
@@ -105,43 +161,6 @@ func CreateMqttMessage(topic, payload, sender_id string,
 	return msg
 }
 
-func ReadFixedHeader(conn *net.Conn) *FixedHeader {
-	var buf = make([]byte, 2)
-	n, _ := io.ReadFull(*conn, buf)
-	if n != len(buf) {
-		log.Debug("read header failed")
-		return nil
-	}
-
-	byte1 := buf[0]
-	header := new(FixedHeader)
-	header.MessageType = uint8(byte1 & 0xF0 >> 4)
-	header.DupFlag = byte1&0x08 > 0
-	header.QosLevel = uint8(byte1 & 0x06 >> 1)
-	header.Retain = byte1&0x01 > 0
-
-	byte2 := buf[1]
-	header.Length = decodeVarLength(byte2, conn)
-	return header
-}
-
-func ReadCompleteCommand(conn *net.Conn) (*FixedHeader, []byte) {
-	fixed_header := ReadFixedHeader(conn)
-	if fixed_header == nil {
-		log.Debug("failed to read fixed header")
-		return nil, make([]byte, 0)
-	}
-	length := fixed_header.Length
-	buf := make([]byte, length)
-	n, _ := io.ReadFull(*conn, buf)
-	if uint32(n) != length {
-		panic(fmt.Sprintf("failed to read %d bytes specified in fixed header, only %d read", length, n))
-	}
-	log.Debugf("Complete command(%s) read into buffer", fixed_header.messageTypeStr())
-
-	return fixed_header, buf
-}
-
 // CONNECT parse
 func parseConnectInfo(buf []byte) *ConnectInfo {
 	var info = new(ConnectInfo)
@@ -158,29 +177,6 @@ func parseConnectInfo(buf []byte) *ConnectInfo {
 	buf = buf[1:]
 	info.Keepalive, _ = parseUint16(buf)
 	return info
-}
-
-// Fixed header parse
-
-func decodeVarLength(cur byte, conn *net.Conn) uint32 {
-	length := uint32(0)
-	multi := uint32(1)
-
-	for {
-		length += multi * uint32(cur&0x7f)
-		if cur&0x80 == 0 {
-			break
-		}
-		buf := make([]byte, 1)
-		n, _ := io.ReadFull(*conn, buf)
-		if n != 1 {
-			panic("failed to read variable length in MQTT header")
-		}
-		cur = buf[0]
-		multi *= 128
-	}
-
-	return length
 }
 
 func parseUint16(buf []byte) (uint16, []byte) {
