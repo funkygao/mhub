@@ -9,6 +9,10 @@ type wild struct {
 	c    *incomingConn
 }
 
+func newWild(topic string, c *incomingConn) wild {
+	return wild{wild: strings.Split(topic, "/"), c: c}
+}
+
 func isWildcard(topic string) bool {
 	if strings.Contains(topic, "#") || strings.Contains(topic, "+") {
 		return true
@@ -28,9 +32,6 @@ func (w wild) valid() bool {
 		}
 	}
 	return true
-}
-func newWild(topic string, c *incomingConn) wild {
-	return wild{wild: strings.Split(topic, "/"), c: c}
 }
 
 func (w wild) matches(parts []string) bool {
