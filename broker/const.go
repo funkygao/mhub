@@ -13,3 +13,9 @@ const (
 	dupFalse    dupFlag    = false
 	dupTrue                = true
 )
+
+const (
+	protocolName      = "MQIsdp"
+	protocolVersion   = 3
+	maxClientIdLength = 23
+)

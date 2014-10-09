@@ -17,7 +17,7 @@ import (
 // A Server holds all the state associated with an MQTT server.
 type Server struct {
 	cf            *config.Config
-	l             net.Listener
+	listener      net.Listener
 	subs          *subscriptions
 	stats         *stats
 	Done          chan struct{}
@@ -27,13 +27,10 @@ type Server struct {
 }
 
 // NewServer creates a new MQTT server, which accepts connections from
-// the given listener. When the server is stopped (for instance by
-// another goroutine closing the net.Listener), channel Done will become
-// readable.
+// the given listener.
 func NewServer(cf *config.Config) *Server {
 	svr := &Server{
 		cf:            cf,
-		l:             nil,
 		stats:         &stats{},
 		Done:          make(chan struct{}),
 		StatsInterval: time.Second * 10,
@@ -60,9 +57,11 @@ func NewServer(cf *config.Config) *Server {
 
 // Start makes the Server start accepting and handling connections.
 func (s *Server) Start() {
+	s.startListener()
+
 	go func() {
 		for {
-			conn, err := s.l.Accept()
+			conn, err := s.listener.Accept()
 			if err != nil {
 				log.Println(err)
 				break
@@ -77,9 +76,26 @@ func (s *Server) Start() {
 	}()
 }
 
+// newIncomingConn creates a new incomingConn associated with this
+// server. The connection becomes the property of the incomingConn
+// and should not be touched again by the caller until the Done
+// channel becomes readable.
+func (s *Server) newIncomingConn(conn net.Conn) *incomingConn {
+	return &incomingConn{
+		svr:  s,
+		conn: conn,
+		jobs: make(chan job, sendingQueueLength),
+		Done: make(chan struct{}),
+	}
+}
+
+func (s *Server) Stop() {
+	close(s.Done)
+}
+
 func (s *Server) startListener() (err error) {
 	if s.cf.ListenAddr != "" {
-		s.l, err = net.Listen("tcp", s.cf.ListenAddr)
+		s.listener, err = net.Listen("tcp", s.cf.ListenAddr)
 		return
 	}
 
@@ -94,7 +110,7 @@ func (s *Server) startListener() (err error) {
 		Certificates: []tls.Certificate{cert},
 		NextProtos:   []string{"mqtt"},
 	}
-	s.l, err = tls.Listen("tcp", s.cf.TlsListenAddr, cfg)
+	s.listener, err = tls.Listen("tcp", s.cf.TlsListenAddr, cfg)
 	return
 }
 
@@ -105,19 +121,6 @@ type incomingConn struct {
 	jobs     chan job
 	clientid string
 	Done     chan struct{}
-}
-
-// newIncomingConn creates a new incomingConn associated with this
-// server. The connection becomes the property of the incomingConn
-// and should not be touched again by the caller until the Done
-// channel becomes readable.
-func (s *Server) newIncomingConn(conn net.Conn) *incomingConn {
-	return &incomingConn{
-		svr:  s,
-		conn: conn,
-		jobs: make(chan job, sendingQueueLength),
-		Done: make(chan struct{}),
-	}
 }
 
 // Start reading and writing on this connection.
@@ -182,9 +185,8 @@ func (c *incomingConn) replace() {
 
 // Queue a message; no notification of sending is done.
 func (c *incomingConn) submit(m proto.Message) {
-	j := job{m: m}
 	select {
-	case c.jobs <- j:
+	case c.jobs <- job{m: m}:
 	default:
 		log.Print(c, ": failed to submit message")
 	}
@@ -235,14 +237,14 @@ func (c *incomingConn) reader() {
 		case *proto.Connect:
 			rc := proto.RetCodeAccepted
 
-			if m.ProtocolName != "MQIsdp" ||
-				m.ProtocolVersion != 3 {
+			if m.ProtocolName != protocolName ||
+				m.ProtocolVersion != protocolVersion {
 				log.Print("reader: reject connection from ", m.ProtocolName, " version ", m.ProtocolVersion)
 				rc = proto.RetCodeUnacceptableProtocolVersion
 			}
 
 			// Check client id.
-			if len(m.ClientId) < 1 || len(m.ClientId) > 23 {
+			if len(m.ClientId) < 1 || len(m.ClientId) > maxClientIdLength {
 				rc = proto.RetCodeIdentifierRejected
 			}
 			c.clientid = m.ClientId
@@ -331,7 +333,6 @@ func (c *incomingConn) reader() {
 }
 
 func (c *incomingConn) writer() {
-
 	// Close connection on exit in order to cause reader to exit.
 	defer func() {
 		c.conn.Close()
