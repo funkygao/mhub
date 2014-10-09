@@ -22,11 +22,12 @@ type Server struct {
 // NewServer creates a new MQTT server, which accepts connections from
 // the given listener.
 func NewServer(cf *config.Config) *Server {
+	s := &stats{interval: cf.StatsInterval}
 	this := &Server{
 		cf:    cf,
-		stats: &stats{interval: cf.StatsInterval},
+		stats: s,
 		Done:  make(chan struct{}),
-		subs:  newSubscriptions(cf.BroadcastWorkers),
+		subs:  newSubscriptions(cf.BroadcastWorkers, s),
 	}
 
 	go this.stats.start()

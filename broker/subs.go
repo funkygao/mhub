@@ -14,15 +14,16 @@ type subscriptions struct {
 	mu        sync.Mutex                 // guards access to fields below
 	subs      map[string][]*incomingConn // key is topic
 	wildcards []wild
-	retain    map[string]retain
+	retain    map[string]retain // key is topic
 	stats     *stats
 }
 
-func newSubscriptions(workers int) *subscriptions {
+func newSubscriptions(workers int, s *stats) *subscriptions {
 	this := &subscriptions{
 		subs:    make(map[string][]*incomingConn),
 		retain:  make(map[string]retain),
 		posts:   make(chan post, postQueue),
+		stats:   s,
 		workers: workers,
 	}
 	for i := 0; i < this.workers; i++ {
@@ -31,9 +32,13 @@ func newSubscriptions(workers int) *subscriptions {
 	return this
 }
 
-// The subscription processing worker.
+func (s *subscriptions) submit(c *incomingConn, m *proto.Publish) {
+	s.posts <- post{c: c, m: m}
+}
+
 func (s *subscriptions) run(id int) {
 	log.Debug("worker %d started", id)
+
 	for post := range s.posts {
 		// Remember the original retain setting, but send out immediate
 		// copies without retain: "When a server sends a PUBLISH to a client
@@ -52,11 +57,9 @@ func (s *subscriptions) run(id int) {
 			return
 		}
 
-		// Find all the connections that should be notified of this message.
-		conns := s.subscribers(post.m.TopicName)
-
-		// Queue the outgoing messages
-		for _, c := range conns {
+		// Find all the connections that should be notified of this message
+		// and queue the outgoing message
+		for _, c := range s.subscribers(post.m.TopicName) {
 			if c != nil {
 				c.submit(post.m)
 			}
@@ -75,15 +78,10 @@ func (s *subscriptions) run(id int) {
 	}
 }
 
-func (s *subscriptions) submit(c *incomingConn, m *proto.Publish) {
-	s.posts <- post{c: c, m: m}
-}
-
 func (s *subscriptions) sendRetain(topic string, c *incomingConn) {
 	s.mu.Lock()
 	var tlist []string
 	if isWildcard(topic) {
-
 		// TODO: select matching topics from the retain map
 	} else {
 		tlist = []string{topic}
