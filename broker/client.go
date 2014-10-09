@@ -136,8 +136,8 @@ func (c *ClientConn) Connect(user, pass string) error {
 		c.ClientId = fmt.Sprint(clientIdRand.Int63())
 	}
 	req := &proto.Connect{
-		ProtocolName:    "MQIsdp",
-		ProtocolVersion: 3,
+		ProtocolName:    protocolName,
+		ProtocolVersion: protocolVersion,
 		ClientId:        c.ClientId,
 		CleanSession:    true,
 	}
