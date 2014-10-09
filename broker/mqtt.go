@@ -32,16 +32,3 @@ type job struct {
 	m proto.Message
 	r receipt
 }
-
-// header is used to initialize a proto.Header when the zero value
-// is not correct. The zero value of proto.Header is
-// the equivalent of header(dupFalse, proto.QosAtMostOnce, retainFalse)
-// and is correct for most messages.
-func header(d dupFlag, q proto.QosLevel, r retainFlag) proto.Header {
-	return proto.Header{
-		DupFlag: bool(d), QosLevel: q, Retain: bool(r),
-	}
-}
-
-type retainFlag bool
-type dupFlag bool

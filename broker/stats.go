@@ -21,7 +21,7 @@ func (s *stats) clientDisconnect() { atomic.AddInt64(&s.clients, -1) }
 
 func statsMessage(topic string, stat int64) *proto.Publish {
 	return &proto.Publish{
-		Header:    header(dupFalse, proto.QosAtMostOnce, retainTrue),
+		Header:    proto.NewHeader(dupFalse, proto.QosAtMostOnce, retainTrue),
 		TopicName: topic,
 		Payload:   newIntPayload(stat),
 	}

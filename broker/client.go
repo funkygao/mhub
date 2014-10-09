@@ -164,7 +164,7 @@ func (c *ClientConn) Disconnect() {
 // will be delivered on the Incoming channel.
 func (c *ClientConn) Subscribe(tqs []proto.TopicQos) *proto.SubAck {
 	c.sync(&proto.Subscribe{
-		Header:    header(dupFalse, proto.QosAtLeastOnce, retainFalse),
+		Header:    proto.NewHeader(dupFalse, proto.QosAtLeastOnce, retainFalse),
 		MessageId: 0,
 		Topics:    tqs,
 	})

@@ -8,10 +8,10 @@ const sendingQueueLength = 100
 const postQueue = 100
 
 const (
-	retainFalse retainFlag = false
-	retainTrue             = true
-	dupFalse    dupFlag    = false
-	dupTrue                = true
+	retainFalse = false
+	retainTrue  = true
+	dupFalse    = false
+	dupTrue     = true
 )
 
 const (
