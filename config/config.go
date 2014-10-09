@@ -1,3 +1,4 @@
+// Config is shared across pkgs
 package config
 
 import (
