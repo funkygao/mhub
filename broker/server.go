@@ -2,11 +2,10 @@ package broker
 
 import (
 	"crypto/tls"
-	"fmt"
 	"github.com/funkygao/gomqtt/config"
+	log "github.com/funkygao/log4go"
 	proto "github.com/funkygao/mqttmsg"
 	"io"
-	"log"
 	"net"
 	"strings"
 )
@@ -15,10 +14,8 @@ import (
 type Server struct {
 	cf *config.Config
 
-	listener net.Listener
-	stats    *stats
-
-	subs *subscriptions
+	stats *stats
+	subs  *subscriptions
 
 	Done chan struct{}
 }
@@ -40,45 +37,41 @@ func NewServer(cf *config.Config) *Server {
 
 // Start makes the Server start accepting and handling connections.
 func (s *Server) Start() {
-	s.startListener()
+	listener, err := s.startListener()
+	if err != nil {
+		panic(err)
+	}
 
 	go func() {
 		for {
-			conn, err := s.listener.Accept()
+			conn, err := listener.Accept()
 			if err != nil {
-				log.Println(err)
-				break
+				log.Error(err)
+				continue
 			}
 
-			client := s.newIncomingConn(conn)
 			s.stats.clientConnect()
-			client.start()
+			session := &incomingConn{
+				svr:  s,
+				conn: conn,
+				jobs: make(chan job, sendingQueueLength),
+				Done: make(chan struct{}),
+			}
+			go session.reader()
+			go session.writer()
 		}
 
 		close(s.Done)
 	}()
 }
 
-// newIncomingConn creates a new incomingConn associated with this
-// server. The connection becomes the property of the incomingConn
-// and should not be touched again by the caller until the Done
-// channel becomes readable.
-func (s *Server) newIncomingConn(conn net.Conn) *incomingConn {
-	return &incomingConn{
-		svr:  s,
-		conn: conn,
-		jobs: make(chan job, sendingQueueLength),
-		Done: make(chan struct{}),
-	}
-}
-
 func (s *Server) Stop() {
 	close(s.Done)
 }
 
-func (s *Server) startListener() (err error) {
+func (s *Server) startListener() (listener net.Listener, err error) {
 	if s.cf.ListenAddr != "" {
-		s.listener, err = net.Listen("tcp", s.cf.ListenAddr)
+		listener, err = net.Listen("tcp", s.cf.ListenAddr)
 		return
 	}
 
@@ -93,7 +86,7 @@ func (s *Server) startListener() (err error) {
 		Certificates: []tls.Certificate{cert},
 		NextProtos:   []string{"mqtt"},
 	}
-	s.listener, err = tls.Listen("tcp", s.cf.TlsListenAddr, cfg)
+	listener, err = tls.Listen("tcp", s.cf.TlsListenAddr, cfg)
 	return
 }
 
@@ -104,12 +97,6 @@ type incomingConn struct {
 	jobs     chan job
 	clientid string
 	Done     chan struct{}
-}
-
-// Start reading and writing on this connection.
-func (c *incomingConn) start() {
-	go c.reader()
-	go c.writer()
 }
 
 // Add this	connection to the map, or find out that an existing connection
@@ -171,13 +158,9 @@ func (c *incomingConn) submit(m proto.Message) {
 	select {
 	case c.jobs <- job{m: m}:
 	default:
-		log.Print(c, ": failed to submit message")
+		log.Error("%+v: failed to submit message", *c)
 	}
 	return
-}
-
-func (c *incomingConn) String() string {
-	return fmt.Sprintf("{IncomingConn: %v}", c.clientid)
 }
 
 // Queue a message, returns a channel that will be readable
@@ -207,13 +190,13 @@ func (c *incomingConn) reader() {
 			if strings.HasSuffix(err.Error(), "use of closed network connection") {
 				return
 			}
-			log.Print("reader: ", err)
+			log.Error(err)
 			return
 		}
 		c.svr.stats.messageRecv()
 
 		if c.svr.cf.Echo {
-			log.Printf("dump  in: %T", m)
+			log.Debug("dump  in: %T", m)
 		}
 
 		switch m := m.(type) {
@@ -222,7 +205,8 @@ func (c *incomingConn) reader() {
 
 			if m.ProtocolName != protocolName ||
 				m.ProtocolVersion != protocolVersion {
-				log.Print("reader: reject connection from ", m.ProtocolName, " version ", m.ProtocolVersion)
+				log.Error("reader: reject connection from %s, version %d",
+					m.ProtocolName, m.ProtocolVersion)
 				rc = proto.RetCodeUnacceptableProtocolVersion
 			}
 
@@ -250,7 +234,8 @@ func (c *incomingConn) reader() {
 
 			// close connection if it was a bad connect
 			if rc != proto.RetCodeAccepted {
-				log.Printf("Connection refused for %v: %v", c.conn.RemoteAddr(), ConnectionErrors[rc])
+				log.Error("Connection refused for %v: %v",
+					c.conn.RemoteAddr(), ConnectionErrors[rc])
 				return
 			}
 
@@ -259,16 +244,17 @@ func (c *incomingConn) reader() {
 			if m.CleanSession {
 				clean = 1
 			}
-			log.Printf("New client connected from %v as %v (c%v, k%v).", c.conn.RemoteAddr(), c.clientid, clean, m.KeepAliveTimer)
+			log.Debug("New client connected from %v as %v (c%v, k%v).",
+				c.conn.RemoteAddr(), c.clientid, clean, m.KeepAliveTimer)
 
 		case *proto.Publish:
 			// TODO: Proper QoS support
 			if m.Header.QosLevel != proto.QosAtMostOnce {
-				log.Printf("reader: no support for QoS %v yet", m.Header.QosLevel)
+				log.Error("reader: no support for QoS %v yet", m.Header.QosLevel)
 				return
 			}
 			if isWildcard(m.TopicName) {
-				log.Print("reader: ignoring PUBLISH with wildcard topic ", m.TopicName)
+				log.Error("reader: ignoring PUBLISH with wildcard topic ", m.TopicName)
 			} else {
 				// replicate message to all subscribers of this topic
 				c.svr.subs.submit(c, m)
@@ -310,7 +296,7 @@ func (c *incomingConn) reader() {
 			return
 
 		default:
-			log.Printf("reader: unknown msg type %T", m)
+			log.Error("reader: unknown msg type %T", m)
 			return
 		}
 	}
@@ -326,7 +312,7 @@ func (c *incomingConn) writer() {
 
 	for job := range c.jobs {
 		if c.svr.cf.Echo {
-			log.Printf("dump out: %T", job.m)
+			log.Debug("dump out: %T", job.m)
 		}
 
 		// TODO: write timeout
@@ -341,13 +327,13 @@ func (c *incomingConn) writer() {
 			if err.Error() == "use of closed network connection" {
 				return
 			}
-			log.Print("writer: ", err)
+			log.Error(err)
 			return
 		}
 		c.svr.stats.messageSend()
 
 		if _, ok := job.m.(*proto.Disconnect); ok {
-			log.Print("writer: sent disconnect message")
+			log.Error("writer: sent disconnect message")
 			return
 		}
 	}
