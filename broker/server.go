@@ -7,6 +7,8 @@ import (
 	proto "github.com/funkygao/mqttmsg"
 	"io"
 	"net"
+	"sync/atomic"
+	"time"
 )
 
 // A Server holds all the state associated with an MQTT server.
@@ -90,14 +92,39 @@ func (s *Server) startListener() (listener net.Listener, err error) {
 
 // An IncomingConn represents a connection into a Server.
 type incomingConn struct {
-	svr      *Server
-	conn     net.Conn
-	jobs     chan job
-	clientid string
+	svr        *Server
+	conn       net.Conn
+	jobs       chan job
+	lastOpTime int64 // // Last Unix timestamp when recieved message from this client
+	clientid   string
 }
 
 func (c *incomingConn) String() string {
 	return c.clientid + "@" + c.conn.RemoteAddr().String()
+}
+
+func (c *incomingConn) refreshOpTime() {
+	atomic.StoreInt64(&c.lastOpTime, time.Now().Unix())
+}
+
+func (c *incomingConn) heartbeat(interval time.Duration) {
+	if interval == 0 {
+		// disabled
+		return
+	}
+
+	ticker := time.NewTicker(interval)
+	for {
+		select {
+		case <-ticker.C:
+			deadline := int64(float64(c.lastOpTime) + float64(interval)*1.5)
+			if deadline < time.Now().Unix() {
+				// ForceDisconnect(client, G_clients_lock, SEND_WILL) TODO
+				log.Warn("client(%s) idle too long, kicked out", *c)
+			}
+		}
+	}
+
 }
 
 func (c *incomingConn) add() *incomingConn {
@@ -160,6 +187,7 @@ func (c *incomingConn) inboundLoop() {
 		}
 
 		c.svr.stats.messageRecv()
+		c.refreshOpTime()
 
 		if c.svr.cf.Echo {
 			log.Debug("%s -> %T %+v", c, m, m)
@@ -190,6 +218,8 @@ func (c *incomingConn) inboundLoop() {
 				existing.del()
 			}
 			c.add()
+
+			go c.heartbeat(time.Duration(m.KeepAliveTimer) * time.Second)
 
 			// TODO: Last will
 
