@@ -12,14 +12,16 @@ import (
 // A ClientConn holds all the state associated with a connection
 // to an MQTT server. It should be allocated via NewClientConn.
 type ClientConn struct {
-	ClientId string              // May be set before the call to Connect.
+	ClientId string // May be set before the call to Connect.
+	conn     net.Conn
 	Dump     bool                // When true, dump the messages in and out.
 	Incoming chan *proto.Publish // Incoming messages arrive on this channel.
+
 	out      chan job
-	conn     net.Conn
-	done     chan struct{} // This channel will be readable once a Disconnect has been successfully sent and the connection is closed.
-	connack  chan *proto.ConnAck
-	suback   chan *proto.SubAck
+	doneChan chan struct{}
+
+	connack chan *proto.ConnAck
+	suback  chan *proto.SubAck
 }
 
 // NewClientConn allocates a new ClientConn.
@@ -28,7 +30,7 @@ func NewClientConn(c net.Conn) *ClientConn {
 		conn:     c,
 		out:      make(chan job, clientQueueLength),
 		Incoming: make(chan *proto.Publish, clientQueueLength),
-		done:     make(chan struct{}),
+		doneChan: make(chan struct{}),
 		connack:  make(chan *proto.ConnAck),
 		suback:   make(chan *proto.SubAck),
 	}
@@ -87,7 +89,7 @@ func (c *ClientConn) writer() {
 	defer func() {
 		// Signal to Disconnect() that the message is on its way, or
 		// that the connection is closing one way or the other...
-		close(c.done)
+		close(c.doneChan)
 	}()
 
 	for job := range c.out {
@@ -142,7 +144,7 @@ func (c *ClientConn) Connect(user, pass string) error {
 // disconnect message is actually sent, and the connection is closed.
 func (c *ClientConn) Disconnect() {
 	c.sync(&proto.Disconnect{})
-	<-c.done
+	<-c.doneChan
 }
 
 // Subscribe subscribes this connection to a list of topics. Messages

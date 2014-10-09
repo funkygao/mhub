@@ -10,7 +10,7 @@ import (
 
 type subscriptions struct {
 	workers int
-	posts   chan (post)
+	posts   chan post
 
 	mu        sync.Mutex // guards access to fields below
 	subs      map[string][]*incomingConn
@@ -30,6 +30,55 @@ func newSubscriptions(workers int) *subscriptions {
 		go s.run(i)
 	}
 	return s
+}
+
+// The subscription processing worker.
+func (s *subscriptions) run(id int) {
+	tag := fmt.Sprintf("worker %d ", id)
+	log.Print(tag, "started")
+	for post := range s.posts {
+		// Remember the original retain setting, but send out immediate
+		// copies without retain: "When a server sends a PUBLISH to a client
+		// as a result of a subscription that already existed when the
+		// original PUBLISH arrived, the Retain flag should not be set,
+		// regardless of the Retain flag of the original PUBLISH.
+		isRetain := post.m.Header.Retain
+		post.m.Header.Retain = false
+
+		// Handle "retain with payload size zero = delete retain".
+		// Once the delete is done, return instead of continuing.
+		if isRetain && post.m.Payload.Size() == 0 {
+			s.mu.Lock()
+			delete(s.retain, post.m.TopicName)
+			s.mu.Unlock()
+			return
+		}
+
+		// Find all the connections that should be notified of this message.
+		conns := s.subscribers(post.m.TopicName)
+
+		// Queue the outgoing messages
+		for _, c := range conns {
+			if c != nil {
+				c.submit(post.m)
+			}
+		}
+
+		if isRetain {
+			s.mu.Lock()
+			// Save a copy of it, and set that copy's Retain to true, so that
+			// when we send it out later we notify new subscribers that this
+			// is an old message.
+			msg := *post.m
+			msg.Header.Retain = true
+			s.retain[post.m.TopicName] = retain{m: msg}
+			s.mu.Unlock()
+		}
+	}
+}
+
+func (s *subscriptions) submit(c *incomingConn, m *proto.Publish) {
+	s.posts <- post{c: c, m: m}
 }
 
 func (s *subscriptions) sendRetain(topic string, c *incomingConn) {
@@ -126,53 +175,4 @@ func (s *subscriptions) unsub(topic string, c *incomingConn) {
 		}
 	}
 	s.mu.Unlock()
-}
-
-// The subscription processing worker.
-func (s *subscriptions) run(id int) {
-	tag := fmt.Sprintf("worker %d ", id)
-	log.Print(tag, "started")
-	for post := range s.posts {
-		// Remember the original retain setting, but send out immediate
-		// copies without retain: "When a server sends a PUBLISH to a client
-		// as a result of a subscription that already existed when the
-		// original PUBLISH arrived, the Retain flag should not be set,
-		// regardless of the Retain flag of the original PUBLISH.
-		isRetain := post.m.Header.Retain
-		post.m.Header.Retain = false
-
-		// Handle "retain with payload size zero = delete retain".
-		// Once the delete is done, return instead of continuing.
-		if isRetain && post.m.Payload.Size() == 0 {
-			s.mu.Lock()
-			delete(s.retain, post.m.TopicName)
-			s.mu.Unlock()
-			return
-		}
-
-		// Find all the connections that should be notified of this message.
-		conns := s.subscribers(post.m.TopicName)
-
-		// Queue the outgoing messages
-		for _, c := range conns {
-			if c != nil {
-				c.submit(post.m)
-			}
-		}
-
-		if isRetain {
-			s.mu.Lock()
-			// Save a copy of it, and set that copy's Retain to true, so that
-			// when we send it out later we notify new subscribers that this
-			// is an old message.
-			msg := *post.m
-			msg.Header.Retain = true
-			s.retain[post.m.TopicName] = retain{m: msg}
-			s.mu.Unlock()
-		}
-	}
-}
-
-func (s *subscriptions) submit(c *incomingConn, m *proto.Publish) {
-	s.posts <- post{c: c, m: m}
 }

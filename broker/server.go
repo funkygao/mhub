@@ -287,6 +287,7 @@ func (c *incomingConn) reader() {
 			if isWildcard(m.TopicName) {
 				log.Print("reader: ignoring PUBLISH with wildcard topic ", m.TopicName)
 			} else {
+				// replicate message to all subscribers of this topic
 				c.svr.subs.submit(c, m)
 			}
 			c.submit(&proto.PubAck{MessageId: m.MessageId})
