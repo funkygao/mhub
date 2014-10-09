@@ -29,25 +29,6 @@ func init() {
 	cliRand = rand.New(rand.NewSource(seed))
 }
 
-// An intPayload implements proto.Payload, and is an int64 that
-// formats itself and then prints itself into the payload.
-type intPayload string
-
-func newIntPayload(i int64) intPayload {
-	return intPayload(fmt.Sprint(i))
-}
-func (ip intPayload) ReadPayload(r io.Reader) error {
-	// not implemented
-	return nil
-}
-func (ip intPayload) WritePayload(w io.Writer) error {
-	_, err := w.Write([]byte(string(ip)))
-	return err
-}
-func (i intPayload) Size() int {
-	return len(i)
-}
-
 // A retain holds information necessary to correctly manage retained
 // messages.
 //
@@ -68,10 +49,6 @@ type subscriptions struct {
 	retain    map[string]retain
 	stats     *stats
 }
-
-// The length of the queue that subscription processing
-// workers are taking from.
-const postQueue = 100
 
 func newSubscriptions(workers int) *subscriptions {
 	s := &subscriptions{
@@ -114,44 +91,6 @@ func (s *subscriptions) add(topic string, c *incomingConn) {
 	} else {
 		s.subs[topic] = append(s.subs[topic], c)
 	}
-}
-
-type wild struct {
-	wild []string
-	c    *incomingConn
-}
-
-func newWild(topic string, c *incomingConn) wild {
-	return wild{wild: strings.Split(topic, "/"), c: c}
-}
-
-func (w wild) matches(parts []string) bool {
-	i := 0
-	for i < len(parts) {
-		// topic is longer, no match
-		if i >= len(w.wild) {
-			return false
-		}
-		// matched up to here, and now the wildcard says "all others will match"
-		if w.wild[i] == "#" {
-			return true
-		}
-		// text does not match, and there wasn't a + to excuse it
-		if parts[i] != w.wild[i] && w.wild[i] != "+" {
-			return false
-		}
-		i++
-	}
-
-	// make finance/stock/ibm/# match finance/stock/ibm
-	if i == len(w.wild)-1 && w.wild[len(w.wild)-1] == "#" {
-		return true
-	}
-
-	if i == len(w.wild) {
-		return true
-	}
-	return false
 }
 
 // Find all connections that are subscribed to this topic.
@@ -548,36 +487,6 @@ func header(d dupFlag, q proto.QosLevel, r retainFlag) proto.Header {
 
 type retainFlag bool
 type dupFlag bool
-
-const (
-	retainFalse retainFlag = false
-	retainTrue             = true
-	dupFalse    dupFlag    = false
-	dupTrue                = true
-)
-
-func isWildcard(topic string) bool {
-	if strings.Contains(topic, "#") || strings.Contains(topic, "+") {
-		return true
-	}
-	return false
-}
-
-func (w wild) valid() bool {
-	for i, part := range w.wild {
-		// catch things like finance#
-		if isWildcard(part) && len(part) != 1 {
-			return false
-		}
-		// # can only occur as the last part
-		if part == "#" && i != len(w.wild)-1 {
-			return false
-		}
-	}
-	return true
-}
-
-const clientQueueLength = 100
 
 // A ClientConn holds all the state associated with a connection
 // to an MQTT server. It should be allocated via NewClientConn.
