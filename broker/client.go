@@ -150,7 +150,7 @@ func (c *ClientConn) Connect(user, pass string) error {
 
 	c.sync(req)
 	ack := <-c.connack
-	return ConnectionErrors[ack.ReturnCode]
+	return proto.ConnectionErrors[ack.ReturnCode]
 }
 
 // Sent a DISCONNECT message to the server. This function blocks until the

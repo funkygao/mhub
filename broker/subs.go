@@ -11,8 +11,8 @@ type subscriptions struct {
 	workers int
 	posts   chan post
 
-	mu        sync.Mutex // guards access to fields below
-	subs      map[string][]*incomingConn
+	mu        sync.Mutex                 // guards access to fields below
+	subs      map[string][]*incomingConn // key is topic
 	wildcards []wild
 	retain    map[string]retain
 	stats     *stats

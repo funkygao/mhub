@@ -7,7 +7,6 @@ import (
 	proto "github.com/funkygao/mqttmsg"
 	"io"
 	"net"
-	"strings"
 )
 
 // A Server holds all the state associated with an MQTT server.
@@ -51,17 +50,15 @@ func (s *Server) Start() {
 			}
 
 			s.stats.clientConnect()
-			session := &incomingConn{
+
+			client := &incomingConn{
 				svr:  s,
 				conn: conn,
 				jobs: make(chan job, sendingQueueLength),
-				Done: make(chan struct{}),
 			}
-			go session.reader()
-			go session.writer()
+			go client.inboundLoop()
+			go client.outboundLoop()
 		}
-
-		close(s.Done)
 	}()
 }
 
@@ -96,18 +93,18 @@ type incomingConn struct {
 	conn     net.Conn
 	jobs     chan job
 	clientid string
-	Done     chan struct{}
 }
 
-// Add this	connection to the map, or find out that an existing connection
-// already exists for the same client-id.
+func (c *incomingConn) String() string {
+	return c.clientid + "@" + c.conn.RemoteAddr().String()
+}
+
 func (c *incomingConn) add() *incomingConn {
 	clientsMu.Lock()
 	defer clientsMu.Unlock()
 
-	existing, ok := clients[c.clientid]
-	if !ok {
-		// this client id already exists, return it
+	existing, present := clients[c.clientid]
+	if present {
 		return existing
 	}
 
@@ -120,37 +117,6 @@ func (c *incomingConn) del() {
 	clientsMu.Lock()
 	defer clientsMu.Unlock()
 	delete(clients, c.clientid)
-	return
-}
-
-// Replace any existing connection with this one. The one to be replaced,
-// if any, must be closed first by the caller.
-func (c *incomingConn) replace() {
-	clientsMu.Lock()
-	defer clientsMu.Unlock()
-
-	// Check that any existing connection is already closed.
-	existing, ok := clients[c.clientid]
-	if ok {
-		die := false
-		select {
-		case _, ok := <-existing.jobs:
-			// what? we are expecting that this channel is closed!
-			if ok {
-				die = true
-			}
-		default:
-			die = true
-		}
-		if die {
-			panic("attempting to replace a connection that is not closed")
-		}
-
-		delete(clients, c.clientid)
-	}
-
-	clients[c.clientid] = c
-	return
 }
 
 // Queue a message; no notification of sending is done.
@@ -171,46 +137,46 @@ func (c *incomingConn) submitSync(m proto.Message) receipt {
 	return j.r
 }
 
-func (c *incomingConn) reader() {
-	// On exit, close the connection and arrange for the writer to exit
-	// by closing the output channel.
+func (c *incomingConn) inboundLoop() {
 	defer func() {
-		c.conn.Close()
 		c.svr.stats.clientDisconnect()
-		close(c.jobs)
+
+		log.Debug("Closed client %s", c)
+
+		c.conn.Close()
+		close(c.jobs) // outbound loop will terminate
 	}()
 
 	for {
 		// TODO: timeout (first message and/or keepalives)
 		m, err := proto.DecodeOneMessage(c.conn, nil)
 		if err != nil {
-			if err == io.EOF {
-				return
+			if err != io.EOF {
+				log.Error("%v: %s", err, c)
 			}
-			if strings.HasSuffix(err.Error(), "use of closed network connection") {
-				return
-			}
-			log.Error(err)
+
 			return
 		}
+
 		c.svr.stats.messageRecv()
 
 		if c.svr.cf.Echo {
-			log.Debug("dump  in: %T", m)
+			log.Debug("%s -> %T %+v", c, m, m)
 		}
 
 		switch m := m.(type) {
 		case *proto.Connect:
 			rc := proto.RetCodeAccepted
 
+			// validate protocol name and version
 			if m.ProtocolName != protocolName ||
 				m.ProtocolVersion != protocolVersion {
-				log.Error("reader: reject connection from %s, version %d",
+				log.Error("inbound: reject connection from %s, version %d",
 					m.ProtocolName, m.ProtocolVersion)
 				rc = proto.RetCodeUnacceptableProtocolVersion
 			}
 
-			// Check client id.
+			// validate client id
 			if len(m.ClientId) < 1 || len(m.ClientId) > maxClientIdLength {
 				rc = proto.RetCodeIdentifierRejected
 			}
@@ -219,46 +185,40 @@ func (c *incomingConn) reader() {
 			// Disconnect existing connections.
 			if existing := c.add(); existing != nil {
 				disconnect := &proto.Disconnect{}
-				r := existing.submitSync(disconnect)
-				r.wait()
+				existing.submitSync(disconnect).wait()
 				existing.del()
 			}
 			c.add()
 
 			// TODO: Last will
 
-			connack := &proto.ConnAck{
+			c.submit(&proto.ConnAck{
 				ReturnCode: rc,
-			}
-			c.submit(connack)
+			})
 
 			// close connection if it was a bad connect
 			if rc != proto.RetCodeAccepted {
-				log.Error("Connection refused for %v: %v",
-					c.conn.RemoteAddr(), ConnectionErrors[rc])
+				log.Error("%v: %s", proto.ConnectionErrors[rc], c)
 				return
 			}
 
-			// Log in mosquitto format.
-			clean := 0
-			if m.CleanSession {
-				clean = 1
-			}
-			log.Debug("New client connected from %v as %v (c%v, k%v).",
-				c.conn.RemoteAddr(), c.clientid, clean, m.KeepAliveTimer)
+			log.Debug("New client %s (c^%v, k^%v)",
+				c, m.CleanSession, m.KeepAliveTimer)
 
 		case *proto.Publish:
-			// TODO: Proper QoS support
+			// TODO support QoS 1
 			if m.Header.QosLevel != proto.QosAtMostOnce {
-				log.Error("reader: no support for QoS %v yet", m.Header.QosLevel)
+				log.Error("inbound: no support for QoS %v yet", m.Header.QosLevel)
 				return
 			}
+
 			if isWildcard(m.TopicName) {
-				log.Error("reader: ignoring PUBLISH with wildcard topic ", m.TopicName)
+				log.Error("inbound: ignoring PUBLISH with wildcard topic ", m.TopicName)
 			} else {
 				// replicate message to all subscribers of this topic
 				c.svr.subs.submit(c, m)
 			}
+
 			c.submit(&proto.PubAck{MessageId: m.MessageId})
 
 		case *proto.PingReq:
@@ -269,6 +229,7 @@ func (c *incomingConn) reader() {
 				// protocol error, disconnect
 				return
 			}
+
 			suback := &proto.SubAck{
 				MessageId: m.MessageId,
 				TopicsQos: make([]proto.QosLevel, len(m.Topics)),
@@ -276,6 +237,7 @@ func (c *incomingConn) reader() {
 			for i, tq := range m.Topics {
 				// TODO: Handle varying QoS correctly
 				c.svr.subs.add(tq.Topic, c)
+
 				suback.TopicsQos[i] = proto.QosAtMostOnce
 			}
 			c.submit(suback)
@@ -289,52 +251,52 @@ func (c *incomingConn) reader() {
 			for _, t := range m.Topics {
 				c.svr.subs.unsub(t, c)
 			}
-			ack := &proto.UnsubAck{MessageId: m.MessageId}
-			c.submit(ack)
+
+			c.submit(&proto.UnsubAck{MessageId: m.MessageId})
 
 		case *proto.Disconnect:
 			return
 
 		default:
-			log.Error("reader: unknown msg type %T", m)
+			log.Error("inbound: unknown msg type %T", m)
 			return
 		}
 	}
 }
 
-func (c *incomingConn) writer() {
-	// Close connection on exit in order to cause reader to exit.
+func (c *incomingConn) outboundLoop() {
 	defer func() {
+		// Close connection on exit in order to cause inboundLoop to exit.
 		c.conn.Close()
 		c.del()
 		c.svr.subs.unsubAll(c)
 	}()
 
-	for job := range c.jobs {
-		if c.svr.cf.Echo {
-			log.Debug("dump out: %T", job.m)
-		}
+	for {
+		select {
+		case job := <-c.jobs:
+			if c.svr.cf.Echo {
+				log.Debug("%s <- %T %+v", c, job.m, job.m)
+			}
 
-		// TODO: write timeout
-		err := job.m.Encode(c.conn)
-		if job.r != nil {
-			// notifiy the sender that this message is sent
-			close(job.r)
-		}
-		if err != nil {
-			// This one is not interesting; it happens when clients
-			// disappear before we send their acks.
-			if err.Error() == "use of closed network connection" {
+			// TODO: write timeout
+			err := job.m.Encode(c.conn)
+			if job.r != nil {
+				// notifiy the sender that this message is sent
+				close(job.r)
+			}
+			if err != nil {
+				log.Error(err)
 				return
 			}
-			log.Error(err)
-			return
-		}
-		c.svr.stats.messageSend()
 
-		if _, ok := job.m.(*proto.Disconnect); ok {
-			log.Error("writer: sent disconnect message")
-			return
+			c.svr.stats.messageSend()
+
+			if _, ok := job.m.(*proto.Disconnect); ok {
+				log.Error("writer: sent disconnect message")
+				return
+			}
 		}
 	}
+
 }
