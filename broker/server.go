@@ -40,8 +40,6 @@ func NewServer(cf *config.Config) *Server {
 	// start the stats reporting goroutine
 	go func() {
 		for {
-			svr.stats.publish(svr.subs, svr.StatsInterval)
-
 			select {
 			case <-svr.Done:
 				return
