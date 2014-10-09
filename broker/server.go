@@ -222,6 +222,11 @@ func (c *incomingConn) inboundLoop() {
 			go c.heartbeat(time.Duration(m.KeepAliveTimer) * time.Second)
 
 			// TODO: Last will
+			if !m.CleanSession {
+				// deliver flying messages TODO
+				// deliver on connect
+				// restore client's subscriptions
+			}
 
 			c.submit(&proto.ConnAck{
 				ReturnCode: rc,
