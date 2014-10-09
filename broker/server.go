@@ -31,24 +31,13 @@ type Server struct {
 func NewServer(cf *config.Config) *Server {
 	svr := &Server{
 		cf:            cf,
-		stats:         &stats{},
+		stats:         &stats{interval: time.Second * 10},
 		Done:          make(chan struct{}),
 		StatsInterval: time.Second * 10,
 		subs:          newSubscriptions(runtime.GOMAXPROCS(0)),
 	}
 
-	// start the stats reporting goroutine
-	go func() {
-		for {
-			select {
-			case <-svr.Done:
-				return
-			default:
-				// keep going
-			}
-			time.Sleep(svr.StatsInterval)
-		}
-	}()
+	go svr.stats.start()
 
 	return svr
 }
