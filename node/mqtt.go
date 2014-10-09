@@ -1,6 +1,7 @@
 package node
 
 import (
+	"crypto/tls"
 	"github.com/funkygao/gomqtt/mqtt"
 	log "github.com/funkygao/log4go"
 	"net"
@@ -8,6 +9,13 @@ import (
 )
 
 func (this *Node) serveMqtt() {
+	if this.cf.ListenAddr != "" {
+		this.serveMqttPlain()
+	}
+
+}
+
+func (this *Node) serveMqttPlain() {
 	listener, err := net.Listen("tcp", this.cf.ListenAddr)
 	if err != nil {
 		panic(err)
@@ -23,6 +31,27 @@ func (this *Node) serveMqtt() {
 
 		go this.handleConnection(&conn)
 	}
+}
+
+func (this *Node) serveMqttTls() {
+	cert, err := tls.LoadX509KeyPair(this.cf.TlsServerCert, this.cf.TlsServerKey)
+	if err != nil {
+		panic(err)
+	}
+
+	cfg := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		NextProtos:   []string{"mqtt"},
+	}
+	listener, err := tls.Listen("tcp", this.cf.TlsListenAddr, cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		listener.Accept()
+	}
+
 }
 
 func (this *Node) handleConnection(conn *net.Conn) {

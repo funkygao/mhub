@@ -6,13 +6,21 @@ import (
 )
 
 type Config struct {
-	ListenAddr string
+	ListenAddr    string
+	TlsListenAddr string
+	TlsServerCert string
+	TlsServerKey  string
 }
 
 func LoadConfig(cf *conf.Conf) *Config {
 	this := new(Config)
 	this.ListenAddr = cf.String("listen_addr", "")
-	if this.ListenAddr == "" {
+	this.TlsListenAddr = cf.String("tls_listen_addr", "")
+	if this.TlsListenAddr != "" {
+		this.TlsServerCert = cf.String("tls_server_cert", "server.crt")
+		this.TlsServerKey = cf.String("tls_server_key", "server.key")
+	}
+	if this.ListenAddr == "" && this.TlsListenAddr == "" {
 		panic("Empty listen address")
 	}
 
