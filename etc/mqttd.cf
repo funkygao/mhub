@@ -1,8 +1,11 @@
 {
     listen_addr: ":1883"
-    tls_listen_addr: ""
+    tls_listen_addr: ":8883"
     tls_server_cert: ""
     tls_server_key: ""
+
+    stats_interval: "10s"
+    broadcast_workers: 10
 
     redis: {
         servers: [

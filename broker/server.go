@@ -7,39 +7,35 @@ import (
 	proto "github.com/funkygao/mqttmsg"
 	"io"
 	"log"
-	"math/rand"
 	"net"
-	"runtime"
 	"strings"
-	"time"
 )
 
 // A Server holds all the state associated with an MQTT server.
 type Server struct {
-	cf            *config.Config
-	listener      net.Listener
-	subs          *subscriptions
-	stats         *stats
-	Done          chan struct{}
-	StatsInterval time.Duration
-	Dump          bool // When true, dump the messages in and out.
-	rand          *rand.Rand
+	cf *config.Config
+
+	listener net.Listener
+	stats    *stats
+
+	subs *subscriptions
+
+	Done chan struct{}
 }
 
 // NewServer creates a new MQTT server, which accepts connections from
 // the given listener.
 func NewServer(cf *config.Config) *Server {
-	svr := &Server{
-		cf:            cf,
-		stats:         &stats{interval: time.Second * 10},
-		Done:          make(chan struct{}),
-		StatsInterval: time.Second * 10,
-		subs:          newSubscriptions(runtime.GOMAXPROCS(0)),
+	this := &Server{
+		cf:    cf,
+		stats: &stats{interval: cf.StatsInterval},
+		Done:  make(chan struct{}),
+		subs:  newSubscriptions(cf.BroadcastWorkers),
 	}
 
-	go svr.stats.start()
+	go this.stats.start()
 
-	return svr
+	return this
 }
 
 // Start makes the Server start accepting and handling connections.
@@ -216,7 +212,7 @@ func (c *incomingConn) reader() {
 		}
 		c.svr.stats.messageRecv()
 
-		if c.svr.Dump {
+		if c.svr.cf.Echo {
 			log.Printf("dump  in: %T", m)
 		}
 
@@ -329,7 +325,7 @@ func (c *incomingConn) writer() {
 	}()
 
 	for job := range c.jobs {
-		if c.svr.Dump {
+		if c.svr.cf.Echo {
 			log.Printf("dump out: %T", job.m)
 		}
 

@@ -1,9 +1,8 @@
 package broker
 
 import (
-	"fmt"
+	log "github.com/funkygao/log4go"
 	proto "github.com/funkygao/mqttmsg"
-	"log"
 	"strings"
 	"sync"
 )
@@ -20,22 +19,21 @@ type subscriptions struct {
 }
 
 func newSubscriptions(workers int) *subscriptions {
-	s := &subscriptions{
+	this := &subscriptions{
 		subs:    make(map[string][]*incomingConn),
 		retain:  make(map[string]retain),
 		posts:   make(chan post, postQueue),
 		workers: workers,
 	}
-	for i := 0; i < s.workers; i++ {
-		go s.run(i)
+	for i := 0; i < this.workers; i++ {
+		go this.run(i)
 	}
-	return s
+	return this
 }
 
 // The subscription processing worker.
 func (s *subscriptions) run(id int) {
-	tag := fmt.Sprintf("worker %d ", id)
-	log.Print(tag, "started")
+	log.Debug("worker %d started", id)
 	for post := range s.posts {
 		// Remember the original retain setting, but send out immediate
 		// copies without retain: "When a server sends a PUBLISH to a client
