@@ -1,7 +1,9 @@
 package broker
 
 import (
+	"crypto/tls"
 	"fmt"
+	"github.com/funkygao/gomqtt/config"
 	proto "github.com/funkygao/mqttmsg"
 	"io"
 	"log"
@@ -14,6 +16,7 @@ import (
 
 // A Server holds all the state associated with an MQTT server.
 type Server struct {
+	cf            *config.Config
 	l             net.Listener
 	subs          *subscriptions
 	stats         *stats
@@ -27,9 +30,10 @@ type Server struct {
 // the given listener. When the server is stopped (for instance by
 // another goroutine closing the net.Listener), channel Done will become
 // readable.
-func NewServer(l net.Listener) *Server {
+func NewServer(cf *config.Config) *Server {
 	svr := &Server{
-		l:             l,
+		cf:            cf,
+		l:             nil,
 		stats:         &stats{},
 		Done:          make(chan struct{}),
 		StatsInterval: time.Second * 10,
@@ -40,6 +44,7 @@ func NewServer(l net.Listener) *Server {
 	go func() {
 		for {
 			svr.stats.publish(svr.subs, svr.StatsInterval)
+
 			select {
 			case <-svr.Done:
 				return
@@ -67,8 +72,30 @@ func (s *Server) Start() {
 			s.stats.clientConnect()
 			client.start()
 		}
+
 		close(s.Done)
 	}()
+}
+
+func (s *Server) startListener() (err error) {
+	if s.cf.ListenAddr != "" {
+		s.l, err = net.Listen("tcp", s.cf.ListenAddr)
+		return
+	}
+
+	// TLS
+	var cert tls.Certificate
+	cert, err = tls.LoadX509KeyPair(s.cf.TlsServerCert, s.cf.TlsServerKey)
+	if err != nil {
+		return
+	}
+
+	cfg := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		NextProtos:   []string{"mqtt"},
+	}
+	s.l, err = tls.Listen("tcp", s.cf.TlsListenAddr, cfg)
+	return
 }
 
 // An IncomingConn represents a connection into a Server.
