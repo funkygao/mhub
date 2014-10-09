@@ -1,13 +1,26 @@
 package broker
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	proto "github.com/funkygao/mqttmsg"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"strings"
+	"time"
 )
+
+func init() {
+	var seed int64
+	var sb [4]byte
+	crand.Read(sb[:])
+	seed = int64(time.Now().Nanosecond())<<32 |
+		int64(sb[0])<<24 | int64(sb[1])<<16 |
+		int64(sb[2])<<8 | int64(sb[3])
+	clientIdRand = rand.New(rand.NewSource(seed))
+}
 
 // A ClientConn holds all the state associated with a connection
 // to an MQTT server. It should be allocated via NewClientConn.
@@ -120,7 +133,7 @@ func (c *ClientConn) writer() {
 func (c *ClientConn) Connect(user, pass string) error {
 	// TODO: Keepalive timer
 	if c.ClientId == "" {
-		c.ClientId = fmt.Sprint(cliRand.Int63())
+		c.ClientId = fmt.Sprint(clientIdRand.Int63())
 	}
 	req := &proto.Connect{
 		ProtocolName:    "MQIsdp",

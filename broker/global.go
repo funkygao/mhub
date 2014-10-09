@@ -12,7 +12,7 @@ var clientsMu sync.Mutex
 
 // A random number generator ready to make client-id's, if
 // they do not provide them to us.
-var cliRand *rand.Rand
+var clientIdRand *rand.Rand
 
 // ConnectionErrors is an array of errors corresponding to the
 // Connect return codes specified in the specification.
