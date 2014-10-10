@@ -2,6 +2,7 @@ package broker
 
 const clientQueueLength = 100
 const sendingQueueLength = 100
+const peersQueueLength = 100
 
 // The length of the queue that subscription processing
 // workers are taking from.

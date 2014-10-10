@@ -16,7 +16,6 @@ type retain struct {
 
 // A post is a unit of work for the subscription processing workers.
 type post struct {
-	c *incomingConn
 	m *proto.Publish
 }
 

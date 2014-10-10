@@ -7,6 +7,10 @@
     stats_interval: "10m"
     broadcast_workers: 10
 
+    peers: {
+        listen_addr: ":9090"
+    }
+
     redis: {
         servers: [
         ]

@@ -32,8 +32,8 @@ func newSubscriptions(workers int, s *stats) *subscriptions {
 	return this
 }
 
-func (s *subscriptions) submit(c *incomingConn, m *proto.Publish) {
-	s.posts <- post{c: c, m: m}
+func (s *subscriptions) submit(m *proto.Publish) {
+	s.posts <- post{m: m}
 }
 
 func (s *subscriptions) run(id int) {

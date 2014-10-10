@@ -171,7 +171,7 @@ func (this *incomingConn) inboundLoop() {
 				log.Error("inbound: ignoring PUBLISH with wildcard topic ", m.TopicName)
 			} else {
 				// replicate message to all subscribers of this topic
-				this.server.subs.submit(this, m)
+				this.server.subs.submit(m)
 			}
 
 			this.submit(&proto.PubAck{MessageId: m.MessageId})
