@@ -8,8 +8,7 @@ import (
 )
 
 type subscriptions struct {
-	workers int
-	posts   chan post
+	posts chan post
 
 	mu        sync.Mutex                 // guards access to fields below
 	subs      map[string][]*incomingConn // key is topic
@@ -18,15 +17,14 @@ type subscriptions struct {
 	stats     *stats
 }
 
-func newSubscriptions(workers int, s *stats) *subscriptions {
+func newSubscriptions(workers int, stats *stats) *subscriptions {
 	this := &subscriptions{
-		subs:    make(map[string][]*incomingConn),
-		retain:  make(map[string]retain),
-		posts:   make(chan post, postQueue),
-		stats:   s,
-		workers: workers,
+		subs:   make(map[string][]*incomingConn),
+		retain: make(map[string]retain),
+		posts:  make(chan post, postQueue),
+		stats:  stats,
 	}
-	for i := 0; i < this.workers; i++ {
+	for i := 0; i < workers; i++ {
 		go this.run(i)
 	}
 	return this
