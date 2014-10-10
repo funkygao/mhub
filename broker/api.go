@@ -8,7 +8,6 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"strings"
 	"time"
 )
 
@@ -54,11 +53,10 @@ func NewClientConn(c net.Conn) *ClientConn {
 
 func (c *ClientConn) inboundLoop() {
 	defer func() {
-		// Cause the writer to exit.
-		close(c.out)
+		close(c.out) // will terminate outboundLoop
+
 		// Cause any goroutines waiting on messages to arrive to exit.
 		close(c.Incoming)
-		c.conn.Close()
 	}()
 
 	for {
@@ -68,10 +66,8 @@ func (c *ClientConn) inboundLoop() {
 			if err == io.EOF {
 				return
 			}
-			if strings.HasSuffix(err.Error(), "use of closed network connection") {
-				return
-			}
-			log.Print("cli reader: ", err)
+
+			log.Println(err)
 			return
 		}
 
@@ -92,16 +88,15 @@ func (c *ClientConn) inboundLoop() {
 		case *proto.Disconnect:
 			return
 		default:
+			// should never get here
 			log.Printf("cli reader: got msg type %T", m)
 		}
 	}
 }
 
 func (c *ClientConn) outboundLoop() {
-	// Close connection on exit in order to cause reader to exit.
 	defer func() {
-		// Signal to Disconnect() that the message is on its way, or
-		// that the connection is closing one way or the other...
+		c.conn.Close() // inbouldLoop will get EOF
 		close(c.doneChan)
 	}()
 
@@ -117,7 +112,7 @@ func (c *ClientConn) outboundLoop() {
 		}
 
 		if err != nil {
-			log.Print("cli writer: ", err)
+			log.Println(err)
 			return
 		}
 
