@@ -84,23 +84,21 @@ func (this *incomingConn) submitSync(m proto.Message) receipt {
 	return j.r
 }
 
+// race:
+// client disconnect -> inboundLoop close jobs ->
+// outboundLoop stops -> outboundLoop close conn, unsubAll, del
 func (this *incomingConn) inboundLoop() {
 	defer func() {
 		this.server.stats.clientDisconnect()
 
-		this.conn.Close()
-		close(this.jobs) // outbound loop will terminate
-
-		// remove this from subscribers
-
-		log.Debug("%s conn closed", this)
+		close(this.jobs) // will terminate outboundLoop
 	}()
 
 	for {
 		// TODO: timeout
 		m, err := proto.DecodeOneMessage(this.conn, nil)
 		if err != nil {
-			if err != io.EOF {
+			if err != io.EOF || true {
 				log.Error("%v: %s", err, this)
 			}
 
@@ -217,6 +215,7 @@ func (this *incomingConn) inboundLoop() {
 			this.submit(&proto.UnsubAck{MessageId: m.MessageId})
 
 		case *proto.Disconnect:
+			log.Debug("%s actively disconnect", this)
 			return
 
 		default:
@@ -228,8 +227,12 @@ func (this *incomingConn) inboundLoop() {
 
 func (this *incomingConn) outboundLoop() {
 	defer func() {
-		// Close connection on exit in order to cause inboundLoop to exit.
+		// close connection on exit in order to cause inboundLoop to exit.
+		// only outboundLoop can close conn,
+		// otherwise outboundLoop will error: use of closed network connection
+		log.Debug("%s conn closed", this)
 		this.conn.Close()
+
 		this.del()
 		this.server.subs.unsubAll(this)
 	}()
@@ -253,14 +256,14 @@ func (this *incomingConn) outboundLoop() {
 				close(job.r)
 			}
 			if err != nil {
-				log.Error(err)
+				log.Error("%s %s", this, err)
 				return
 			}
 
 			this.server.stats.messageSend()
 
 			if _, ok := job.m.(*proto.Disconnect); ok {
-				log.Error("writer: sent disconnect message")
+				log.Error("%s actively disconnect", this)
 				return
 			}
 		}

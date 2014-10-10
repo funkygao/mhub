@@ -1,12 +1,9 @@
 package broker
 
 import (
-	"errors"
 	"math/rand"
 	"sync"
 )
-
-var errUseClosedConn = errors.New("use of closed network connection")
 
 // all clients in mem, key is client id
 var clients map[string]*incomingConn = make(map[string]*incomingConn)

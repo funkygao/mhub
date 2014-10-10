@@ -62,7 +62,7 @@ func (this *stats) start() {
 		lastUserTime = userTime
 		lastSysTime = sysTime
 
-		log.Info("stats: %s,ver:%s, goroutine:%d, mem:%s, cpu:%3.2f%%us,%3.2f%%sy",
+		log.Info("stats:%s, ver:%s, goroutine:%d, mem:%s, cpu:{%3.2f%%us, %3.2f%%sy}",
 			this,
 			server.BuildID,
 			runtime.NumGoroutine(),
