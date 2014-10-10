@@ -3,6 +3,8 @@ mhub
 
 Message hub, a real-time MQTT broker that supports cluster.
 
+Thanks to https://github.com/jeffallen/mqtt
+
 ### Arch
 
             MQTT-client   MQTT-client    MQTT-client 
