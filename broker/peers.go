@@ -22,6 +22,8 @@ func newPeers(server *Server) (this *peers) {
 	return
 }
 
+// racing:
+// broker listener ready -> peer listener ready -> register broker presence
 func (this *peers) start(listenAddr string) error {
 	go this.discover()
 
@@ -36,6 +38,8 @@ func (this *peers) start(listenAddr string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Info("Accepting peers conn on %s", listenAddr)
 
 	go func() {
 		for {
@@ -144,7 +148,7 @@ func (this *peer) start() {
 	tcpConn.SetNoDelay(this.cf.TcpNoDelay)
 	tcpConn.SetKeepAlive(this.cf.Keepalive)
 
-	log.Debug("peer[%+v] connected", this.host)
+	log.Info("peer[%+v] connected", this.host)
 
 	for job := range this.jobs {
 		err = job.m.Encode(this.conn) // replicated to peer

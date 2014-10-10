@@ -51,7 +51,7 @@ func (this *Server) Start() {
 				continue
 			}
 
-			log.Debug("new client conn %s", conn.RemoteAddr().String())
+			log.Debug("client[%s] accepted", conn.RemoteAddr())
 			this.stats.clientConnect()
 
 			client := &incomingConn{
@@ -62,6 +62,8 @@ func (this *Server) Start() {
 			go client.inboundLoop()
 			go client.outboundLoop()
 		}
+
+		this.Stop()
 	}()
 }
 

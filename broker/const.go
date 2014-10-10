@@ -1,5 +1,6 @@
 package broker
 
+// TODO mv to config
 const clientQueueLength = 100
 const sendingQueueLength = 100
 const peersQueueLength = 100

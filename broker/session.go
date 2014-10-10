@@ -9,12 +9,13 @@ import (
 	"time"
 )
 
-// An IncomingConn represents a connection into a Server.
+// An incomingConn represents a MQTT connection into a Server.
 type incomingConn struct {
-	server     *Server
+	server *Server
+
 	conn       net.Conn
 	jobs       chan job
-	lastOpTime int64 // // Last Unix timestamp when recieved message from this client
+	lastOpTime int64 // // Last Unix timestamp when recieved message from this conn
 	clientid   string
 }
 
@@ -62,8 +63,8 @@ func (this *incomingConn) add() *incomingConn {
 // Delete a connection; the conection must be closed by the caller first.
 func (this *incomingConn) del() {
 	clientsMu.Lock()
-	defer clientsMu.Unlock()
 	delete(clients, this.clientid)
+	clientsMu.Unlock()
 }
 
 // Queue a message; no notification of sending is done.
@@ -71,9 +72,8 @@ func (this *incomingConn) submit(m proto.Message) {
 	select {
 	case this.jobs <- job{m: m}:
 	default:
-		log.Error("%s: failed to submit message", this)
+		log.Error("%s: failed to put in jobs chan", this)
 	}
-	return
 }
 
 // Queue a message, returns a channel that will be readable
@@ -91,11 +91,13 @@ func (this *incomingConn) inboundLoop() {
 		this.conn.Close()
 		close(this.jobs) // outbound loop will terminate
 
+		// remove this from subscribers
+
 		log.Debug("%s conn closed", this)
 	}()
 
 	for {
-		// TODO: timeout (first message and/or keepalives)
+		// TODO: timeout
 		m, err := proto.DecodeOneMessage(this.conn, nil)
 		if err != nil {
 			if err != io.EOF {
@@ -132,6 +134,8 @@ func (this *incomingConn) inboundLoop() {
 
 			// Disconnect existing connections.
 			if existing := this.add(); existing != nil {
+				log.Warn("found dup client: %s", this)
+
 				disconnect := &proto.Disconnect{}
 				existing.submitSync(disconnect).wait()
 				existing.del()
