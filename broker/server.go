@@ -51,7 +51,7 @@ func (this *Server) Start() {
 			this.stats.clientConnect()
 
 			client := &incomingConn{
-				svr:  this,
+				server:  this,
 				conn: conn,
 				jobs: make(chan job, sendingQueueLength),
 			}

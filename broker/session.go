@@ -11,22 +11,22 @@ import (
 
 // An IncomingConn represents a connection into a Server.
 type incomingConn struct {
-	svr        *Server
+	server     *Server
 	conn       net.Conn
 	jobs       chan job
 	lastOpTime int64 // // Last Unix timestamp when recieved message from this client
 	clientid   string
 }
 
-func (c *incomingConn) String() string {
-	return c.clientid + "@" + c.conn.RemoteAddr().String()
+func (this *incomingConn) String() string {
+	return this.clientid + "@" + this.conn.RemoteAddr().String()
 }
 
-func (c *incomingConn) refreshOpTime() {
-	atomic.StoreInt64(&c.lastOpTime, time.Now().Unix())
+func (this *incomingConn) refreshOpTime() {
+	atomic.StoreInt64(&this.lastOpTime, time.Now().Unix())
 }
 
-func (c *incomingConn) heartbeat(interval time.Duration) {
+func (this *incomingConn) heartbeat(interval time.Duration) {
 	if interval == 0 {
 		// disabled
 		return
@@ -36,80 +36,80 @@ func (c *incomingConn) heartbeat(interval time.Duration) {
 	for {
 		select {
 		case <-ticker.C:
-			deadline := int64(float64(c.lastOpTime) + float64(interval)*1.5)
+			deadline := int64(float64(this.lastOpTime) + float64(interval)*1.5)
 			if deadline < time.Now().Unix() {
 				// ForceDisconnect(client, G_clients_lock, SEND_WILL) TODO
-				log.Warn("client(%s) idle too long, kicked out", *c)
+				log.Warn("client(%s) idle too long, kicked out", this)
 			}
 		}
 	}
 
 }
 
-func (c *incomingConn) add() *incomingConn {
+func (this *incomingConn) add() *incomingConn {
 	clientsMu.Lock()
 	defer clientsMu.Unlock()
 
-	existing, present := clients[c.clientid]
+	existing, present := clients[this.clientid]
 	if present {
 		return existing
 	}
 
-	clients[c.clientid] = c
+	clients[this.clientid] = this
 	return nil
 }
 
 // Delete a connection; the conection must be closed by the caller first.
-func (c *incomingConn) del() {
+func (this *incomingConn) del() {
 	clientsMu.Lock()
 	defer clientsMu.Unlock()
-	delete(clients, c.clientid)
+	delete(clients, this.clientid)
 }
 
 // Queue a message; no notification of sending is done.
-func (c *incomingConn) submit(m proto.Message) {
+func (this *incomingConn) submit(m proto.Message) {
 	select {
-	case c.jobs <- job{m: m}:
+	case this.jobs <- job{m: m}:
 	default:
-		log.Error("%+v: failed to submit message", *c)
+		log.Error("%s: failed to submit message", this)
 	}
 	return
 }
 
 // Queue a message, returns a channel that will be readable
 // when the message is sent.
-func (c *incomingConn) submitSync(m proto.Message) receipt {
+func (this *incomingConn) submitSync(m proto.Message) receipt {
 	j := job{m: m, r: make(receipt)}
-	c.jobs <- j
+	this.jobs <- j
 	return j.r
 }
 
-func (c *incomingConn) inboundLoop() {
+func (this *incomingConn) inboundLoop() {
 	defer func() {
-		c.svr.stats.clientDisconnect()
+		this.server.stats.clientDisconnect()
 
-		log.Debug("Closed client %s", c)
+		log.Debug("Closed client %s", this)
 
-		c.conn.Close()
-		close(c.jobs) // outbound loop will terminate
+		this.conn.Close()
+		close(this.jobs) // outbound loop will terminate
 	}()
 
 	for {
 		// TODO: timeout (first message and/or keepalives)
-		m, err := proto.DecodeOneMessage(c.conn, nil)
+		m, err := proto.DecodeOneMessage(this.conn, nil)
 		if err != nil {
 			if err != io.EOF {
-				log.Error("%v: %s", err, c)
+				log.Error("%v: %s", err, this)
 			}
 
 			return
 		}
 
-		c.svr.stats.messageRecv()
-		c.refreshOpTime()
+		this.server.stats.messageRecv()
+		this.refreshOpTime()
 
-		if c.svr.cf.Echo {
-			log.Debug("%s -> %T %+v", c, m, m)
+		if this.server.cf.Echo {
+			log.Debug("%s -> %T %+v", this, m, m)
 		}
 
 		switch m := m.(type) {
@@ -128,17 +128,17 @@ func (c *incomingConn) inboundLoop() {
 			if len(m.ClientId) < 1 || len(m.ClientId) > maxClientIdLength {
 				rc = proto.RetCodeIdentifierRejected
 			}
-			c.clientid = m.ClientId
+			this.clientid = m.ClientId
 
 			// Disconnect existing connections.
-			if existing := c.add(); existing != nil {
+			if existing := this.add(); existing != nil {
 				disconnect := &proto.Disconnect{}
 				existing.submitSync(disconnect).wait()
 				existing.del()
 			}
-			c.add()
+			this.add()
 
-			go c.heartbeat(time.Duration(m.KeepAliveTimer) * time.Second)
+			go this.heartbeat(time.Duration(m.KeepAliveTimer) * time.Second)
 
 			// TODO: Last will
 			if !m.CleanSession {
@@ -147,18 +147,18 @@ func (c *incomingConn) inboundLoop() {
 				// restore client's subscriptions
 			}
 
-			c.submit(&proto.ConnAck{
+			this.submit(&proto.ConnAck{
 				ReturnCode: rc,
 			})
 
 			// close connection if it was a bad connect
 			if rc != proto.RetCodeAccepted {
-				log.Error("%v: %s", proto.ConnectionErrors[rc], c)
+				log.Error("%v: %s", proto.ConnectionErrors[rc], this)
 				return
 			}
 
 			log.Debug("New client %s (c^%v, k^%v)",
-				c, m.CleanSession, m.KeepAliveTimer)
+				this, m.CleanSession, m.KeepAliveTimer)
 
 		case *proto.Publish:
 			// TODO support QoS 1
@@ -171,13 +171,13 @@ func (c *incomingConn) inboundLoop() {
 				log.Error("inbound: ignoring PUBLISH with wildcard topic ", m.TopicName)
 			} else {
 				// replicate message to all subscribers of this topic
-				c.svr.subs.submit(c, m)
+				this.server.subs.submit(this, m)
 			}
 
-			c.submit(&proto.PubAck{MessageId: m.MessageId})
+			this.submit(&proto.PubAck{MessageId: m.MessageId})
 
 		case *proto.PingReq:
-			c.submit(&proto.PingResp{})
+			this.submit(&proto.PingResp{})
 
 		case *proto.Subscribe:
 			if m.Header.QosLevel != proto.QosAtLeastOnce {
@@ -191,23 +191,23 @@ func (c *incomingConn) inboundLoop() {
 			}
 			for i, tq := range m.Topics {
 				// TODO: Handle varying QoS correctly
-				c.svr.subs.add(tq.Topic, c)
+				this.server.subs.add(tq.Topic, this)
 
 				suback.TopicsQos[i] = proto.QosAtMostOnce
 			}
-			c.submit(suback)
+			this.submit(suback)
 
 			// Process retained messages.
 			for _, tq := range m.Topics {
-				c.svr.subs.sendRetain(tq.Topic, c)
+				this.server.subs.sendRetain(tq.Topic, this)
 			}
 
 		case *proto.Unsubscribe:
 			for _, t := range m.Topics {
-				c.svr.subs.unsub(t, c)
+				this.server.subs.unsub(t, this)
 			}
 
-			c.submit(&proto.UnsubAck{MessageId: m.MessageId})
+			this.submit(&proto.UnsubAck{MessageId: m.MessageId})
 
 		case *proto.Disconnect:
 			return
@@ -219,23 +219,23 @@ func (c *incomingConn) inboundLoop() {
 	}
 }
 
-func (c *incomingConn) outboundLoop() {
+func (this *incomingConn) outboundLoop() {
 	defer func() {
 		// Close connection on exit in order to cause inboundLoop to exit.
-		c.conn.Close()
-		c.del()
-		c.svr.subs.unsubAll(c)
+		this.conn.Close()
+		this.del()
+		this.server.subs.unsubAll(this)
 	}()
 
 	for {
 		select {
-		case job := <-c.jobs:
-			if c.svr.cf.Echo {
-				log.Debug("%s <- %T %+v", c, job.m, job.m)
+		case job := <-this.jobs:
+			if this.server.cf.Echo {
+				log.Debug("%s <- %T %+v", this, job.m, job.m)
 			}
 
 			// TODO: write timeout
-			err := job.m.Encode(c.conn)
+			err := job.m.Encode(this.conn)
 			if job.r != nil {
 				// notifiy the sender that this message is sent
 				close(job.r)
@@ -245,7 +245,7 @@ func (c *incomingConn) outboundLoop() {
 				return
 			}
 
-			c.svr.stats.messageSend()
+			this.server.stats.messageSend()
 
 			if _, ok := job.m.(*proto.Disconnect); ok {
 				log.Error("writer: sent disconnect message")
