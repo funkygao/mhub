@@ -11,16 +11,16 @@ Message hub, a real-time MQTT broker that supports cluster.
                               |
                       publish | subscribe
                               |
-                              |               cluster
+                              |          mhub cluster
                +------------------------------------+
                |                                    |
                |             PUBLISH                |
                |           replication              |
-               |    broker ------------ broker      |
-               |        \               /           |
-               |         \            /             |
-               |          \         /               |
-               |             broker                 |
+               | mhub node -------------- mhub node |
+               |          \              /          |
+               |           \           /            |
+               |            \        /              |
+               |            mhub node               |
                |                                    |
                +------------------------------------+
                               |
