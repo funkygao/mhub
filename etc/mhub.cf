@@ -11,6 +11,9 @@
 
     peers: {
         listen_addr: ":9090"
+        tcp_nodelay: true
+        keepalive: true
+        io_timeout: "2s"
     }
 
     redis: {

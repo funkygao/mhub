@@ -3,19 +3,22 @@ package broker
 import (
 	"errors"
 	log "github.com/funkygao/log4go"
+	"github.com/funkygao/mhub/config"
 	proto "github.com/funkygao/mqttmsg"
 	"net"
 	"sync"
 )
 
 type peer struct {
+	cf   config.PeersConfig
 	host string
 	conn net.Conn
 	jobs chan job
 }
 
-func newPeer(host string) (this *peer) {
+func newPeer(host string, cf config.PeersConfig) (this *peer) {
 	return &peer{
+		cf:   cf,
 		host: host,
 		jobs: make(chan job, peersQueueLength),
 	}
@@ -33,6 +36,10 @@ func (this *peer) start() {
 		log.Error(err)
 		return
 	}
+
+	tcpConn, _ := this.conn.(*net.TCPConn)
+	tcpConn.SetNoDelay(this.cf.TcpNoDelay)
+	tcpConn.SetKeepAlive(this.cf.Keepalive)
 
 	log.Debug("peer[%+v] connected", this.host)
 
@@ -69,7 +76,7 @@ func (this *peers) start(listenAddr string) error {
 	// add self to peers for testing, TODO kill this
 	if true {
 		node := "localhost:9090"
-		this.nodes[node] = newPeer(node)
+		this.nodes[node] = newPeer(node, this.server.cf.Peers)
 		go this.nodes[node].start()
 	}
 
@@ -133,7 +140,7 @@ func (this *peers) join(host string) error {
 		return errors.New("peer already exists")
 	}
 
-	this.nodes[host] = newPeer(host)
+	this.nodes[host] = newPeer(host, this.server.cf.Peers)
 	return nil
 }
 
