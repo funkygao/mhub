@@ -31,6 +31,16 @@ Thanks to https://github.com/jeffallen/mqtt
                           etcd cluster
 
 
+### Network I/O
+
+
+                        +- peer
+                mhub ---|- peer
+                  |     +- peer
+                  |      
+          +----------------+
+          |       |        |
+        client  client  client
 
 ### Clustering
 
@@ -44,3 +54,4 @@ Thanks to https://github.com/jeffallen/mqtt
 *   cluster of brokers, scales with the number of MQTT clients
 *   ForceDisconnect after heartbeat idle too long
 *   security
+*   connect/io timeout of client/peers
