@@ -5,8 +5,7 @@ Message hub, a real-time MQTT broker that supports cluster.
 
 ### Arch
 
-            MQTT            MQTT            MQTT
-            client          client          client
+            MQTT-client   MQTT-client    MQTT-client 
               |               |                |
               +--------------------------------+
                               |
