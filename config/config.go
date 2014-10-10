@@ -17,6 +17,8 @@ type Config struct {
 	Echo          bool
 
 	BroadcastWorkers int
+
+	Peers *PeersConfig
 }
 
 func LoadConfig(cf *conf.Conf) *Config {
@@ -34,6 +36,12 @@ func LoadConfig(cf *conf.Conf) *Config {
 	// validation
 	if this.ListenAddr == "" && this.TlsListenAddr == "" {
 		panic("Empty listen address and tls listen address")
+	}
+
+	section, err := cf.Section("peers")
+	if err == nil {
+		this.Peers = &PeersConfig{}
+		this.Peers.loadConfig(section)
 	}
 
 	log.Debug("config: %+v", *this)
