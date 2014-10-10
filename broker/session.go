@@ -144,6 +144,7 @@ func (this *incomingConn) inboundLoop() {
 			go this.heartbeat(time.Duration(m.KeepAliveTimer) * time.Second)
 
 			// TODO: Last will
+			// The will option allows clients to prepare for the worst.
 			if !m.CleanSession {
 				// deliver flying messages TODO
 				// deliver on connect

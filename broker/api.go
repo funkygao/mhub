@@ -170,6 +170,10 @@ func (c *ClientConn) Subscribe(tqs []proto.TopicQos) *proto.SubAck {
 // Publish publishes the given message to the MQTT server.
 // The QosLevel of the message must be QosAtLeastOnce for now.
 func (c *ClientConn) Publish(m *proto.Publish) {
+	// a new message instance is set to "At Least Once", a Quality of Service (QoS) of 1
+	// which means the sender will deliver the message at least once and, if there's no acknowledgement
+	// of it, it will keep sending it with a duplicate flag set until an acknowledgement turns up, at
+	// which point the client removes the message from its persisted set of messages.
 	if m.QosLevel != proto.QosAtMostOnce {
 		panic("unsupported QoS level")
 	}
