@@ -6,7 +6,8 @@
         tls_server_key: ""
 
         stats_interval: "10m"
-        broadcast_workers: 10
+        subscriptions_workers: 10
+        echo: true
     }
 
     peers: {
