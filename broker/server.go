@@ -34,8 +34,8 @@ func NewServer(cf *config.Config) *Server {
 }
 
 // Start makes the Server start accepting and handling connections.
-func (s *Server) Start() {
-	listener, err := s.startListener()
+func (this *Server) Start() {
+	listener, err := this.startListener()
 	if err != nil {
 		panic(err)
 	}
@@ -48,10 +48,10 @@ func (s *Server) Start() {
 				continue
 			}
 
-			s.stats.clientConnect()
+			this.stats.clientConnect()
 
 			client := &incomingConn{
-				svr:  s,
+				svr:  this,
 				conn: conn,
 				jobs: make(chan job, sendingQueueLength),
 			}
@@ -61,19 +61,19 @@ func (s *Server) Start() {
 	}()
 }
 
-func (s *Server) Stop() {
-	close(s.Done)
+func (this *Server) Stop() {
+	close(this.Done)
 }
 
-func (s *Server) startListener() (listener net.Listener, err error) {
-	if s.cf.ListenAddr != "" {
-		listener, err = net.Listen("tcp", s.cf.ListenAddr)
+func (this *Server) startListener() (listener net.Listener, err error) {
+	if this.cf.ListenAddr != "" {
+		listener, err = net.Listen("tcp", this.cf.ListenAddr)
 		return
 	}
 
 	// TLS
 	var cert tls.Certificate
-	cert, err = tls.LoadX509KeyPair(s.cf.TlsServerCert, s.cf.TlsServerKey)
+	cert, err = tls.LoadX509KeyPair(this.cf.TlsServerCert, this.cf.TlsServerKey)
 	if err != nil {
 		return
 	}
@@ -82,6 +82,6 @@ func (s *Server) startListener() (listener net.Listener, err error) {
 		Certificates: []tls.Certificate{cert},
 		NextProtos:   []string{"mqtt"},
 	}
-	listener, err = tls.Listen("tcp", s.cf.TlsListenAddr, cfg)
+	listener, err = tls.Listen("tcp", this.cf.TlsListenAddr, cfg)
 	return
 }
