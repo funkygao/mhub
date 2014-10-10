@@ -11,6 +11,9 @@ var (
 		showVersion bool
 		logFile     string
 		logLevel    string
+		cpuProf     bool
+		memProf     bool
+		blockProf   bool
 	}
 )
 
@@ -19,6 +22,9 @@ func init() {
 	flag.BoolVar(&option.showVersion, "version", false, "show version and exit")
 	flag.StringVar(&option.logFile, "log", "stdout", "log file")
 	flag.StringVar(&option.logLevel, "level", "debug", "log level")
+	flag.BoolVar(&option.cpuProf, "cpuprof", false, "enable cpu profiler")
+	flag.BoolVar(&option.memProf, "memprof", false, "enable mem profiler")
+	flag.BoolVar(&option.blockProf, "blockprof", false, "enable block profiler")
 
 	flag.Parse()
 

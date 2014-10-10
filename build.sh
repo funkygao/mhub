@@ -8,6 +8,10 @@ if [[ $1 = "-loc" ]]; then
     find . -name '*.go' | xargs wc -l | sort -n
     exit
 fi
+if [[ $1 = "-prof" ]]; then
+    go tool pprof $mhub_bin prof/cpu.pprof
+    exit
+fi
 
 cd $mhub_dir
 ID=$(git rev-parse HEAD | cut -c1-7)
