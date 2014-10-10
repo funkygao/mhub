@@ -2,8 +2,8 @@ package broker
 
 import (
 	"crypto/tls"
-	"github.com/funkygao/gomqtt/config"
 	log "github.com/funkygao/log4go"
+	"github.com/funkygao/mhub/config"
 	"net"
 )
 

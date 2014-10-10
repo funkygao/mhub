@@ -34,7 +34,7 @@ func (this *peer) start() {
 		return
 	}
 
-	log.Debug("%+v started", *this)
+	log.Debug("peer[%+v] connected", this.host)
 
 	for job := range this.jobs {
 		err = job.m.Encode(this.conn) // replicated to peer
@@ -86,6 +86,7 @@ func (this *peers) start(listenAddr string) error {
 				continue
 			}
 
+			log.Debug("peer[%s] accepted", conn.RemoteAddr().String())
 			go this.recvReplication(conn)
 		}
 	}()
@@ -103,8 +104,6 @@ func (this *peers) discover() {
 
 func (this *peers) recvReplication(conn net.Conn) {
 	defer conn.Close()
-
-	log.Debug("got a replicator: %s", conn.RemoteAddr().String())
 
 	for {
 		m, err := proto.DecodeOneMessage(conn, nil)

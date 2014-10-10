@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/funkygao/golib/server"
-	"github.com/funkygao/gomqtt/broker"
-	"github.com/funkygao/gomqtt/config"
+	"github.com/funkygao/mhub/broker"
+	"github.com/funkygao/mhub/config"
 	"runtime/debug"
 )
 
@@ -16,7 +16,7 @@ func main() {
 		}
 	}()
 
-	server := server.NewServer("mqttd")
+	server := server.NewServer("mhub")
 	server.LoadConfig(option.configFile)
 	server.Launch()
 
