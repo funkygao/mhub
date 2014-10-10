@@ -28,7 +28,8 @@ func (this *peers) start(listenAddr string) error {
 	go this.discover()
 
 	// add self to peers for testing, TODO kill this
-	if true {
+	// FIXME if true, will lead to send on closed channel err
+	if false {
 		node := "localhost:9090"
 		this.nodes[node] = newPeer(node, this.server.cf.Peers)
 		go this.nodes[node].start()

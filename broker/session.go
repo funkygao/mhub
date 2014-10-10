@@ -98,7 +98,8 @@ func (this *incomingConn) inboundLoop() {
 		// TODO: timeout
 		m, err := proto.DecodeOneMessage(this.conn, nil)
 		if err != nil {
-			if err != io.EOF || true {
+			if err != io.EOF {
+				// e,g. connection reset by peer
 				log.Error("%v: %s", err, this)
 			}
 
