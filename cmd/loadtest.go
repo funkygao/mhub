@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	proto "github.com/huin/mqtt"
-	"github.com/jeffallen/mqtt"
+	mqtt "github.com/funkygao/mhub/broker"
+	proto "github.com/funkygao/mqttmsg"
 )
 
 var conns = flag.Int("conns", 100, "how many connections")

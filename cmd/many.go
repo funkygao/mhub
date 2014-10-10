@@ -2,15 +2,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"math/rand"
-    "fmt"
 	"net"
 	"os"
 	"time"
 
-	proto "github.com/huin/mqtt"
-	"github.com/jeffallen/mqtt"
+	mqtt "github.com/funkygao/mhub/broker"
+	proto "github.com/funkygao/mqttmsg"
 )
 
 var conns = flag.Int("conns", 10, "how many conns (0 means infinite)")
@@ -79,6 +79,6 @@ func client(i int) {
 		})
 		sltime := rand.Int31n(half) - (half / 2) + int32(*pace)
 		time.Sleep(time.Duration(sltime) * time.Second)
-        fmt.Println(topic)
+		fmt.Println(topic)
 	}
 }

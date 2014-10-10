@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/eclesh/welford"
-	proto "github.com/huin/mqtt"
-	"github.com/jeffallen/mqtt"
+	mqtt "github.com/funkygao/mhub/broker"
+	proto "github.com/funkygao/mqttmsg"
 )
 
 var pairs = flag.Int("pairs", 100, "how many ping/reply pairs")
