@@ -15,7 +15,7 @@ import (
 	proto "github.com/funkygao/mqttmsg"
 )
 
-var pairs = flag.Int("pairs", 100, "how many ping/reply pairs")
+var pairs = flag.Int("pairs", 200, "how many ping/reply pairs")
 var wsubs = flag.Int("wsubs", 20, "how many wildcard subscribers")
 var messages = flag.Int("messages", 1000, "how many messages")
 var host = flag.String("host", "localhost:1883", "hostname of broker")
