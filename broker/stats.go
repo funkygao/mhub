@@ -17,10 +17,10 @@ type stats struct {
 	lastmsgs   int64
 }
 
-func (s *stats) messageRecv()      { atomic.AddInt64(&s.recv, 1) }
-func (s *stats) messageSend()      { atomic.AddInt64(&s.sent, 1) }
-func (s *stats) clientConnect()    { atomic.AddInt64(&s.clients, 1) }
-func (s *stats) clientDisconnect() { atomic.AddInt64(&s.clients, -1) }
+func (this *stats) messageRecv()      { atomic.AddInt64(&this.recv, 1) }
+func (this *stats) messageSend()      { atomic.AddInt64(&this.sent, 1) }
+func (this *stats) clientConnect()    { atomic.AddInt64(&this.clients, 1) }
+func (this *stats) clientDisconnect() { atomic.AddInt64(&this.clients, -1) }
 
 func (this stats) String() string {
 	return fmt.Sprintf("{recv:%d, sent:%d, clients:%d, clientsMax:%d, lastmsgs:%d}",
