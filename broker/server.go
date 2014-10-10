@@ -47,6 +47,7 @@ func (this *Server) Start() {
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
+				// e,g. too many open files
 				log.Error(err)
 				continue
 			}
