@@ -37,7 +37,7 @@ func (s *subscriptions) submit(m *proto.Publish) {
 }
 
 func (s *subscriptions) run(id int) {
-	log.Debug("worker %d started", id)
+	log.Debug("subs worker %d started", id)
 
 	for post := range s.posts {
 		// Remember the original retain setting, but send out immediate

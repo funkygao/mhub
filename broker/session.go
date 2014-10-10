@@ -157,7 +157,7 @@ func (this *incomingConn) inboundLoop() {
 				return
 			}
 
-			log.Debug("New client %s (c^%v, k^%v)",
+			log.Info("New client %s (c^%v, k^%v)",
 				this, m.CleanSession, m.KeepAliveTimer)
 
 		case *proto.Publish:
@@ -172,6 +172,9 @@ func (this *incomingConn) inboundLoop() {
 			} else {
 				// replicate message to all subscribers of this topic
 				this.server.subs.submit(m)
+
+				// replication to peers
+				this.server.peers.submit(m)
 			}
 
 			this.submit(&proto.PubAck{MessageId: m.MessageId})

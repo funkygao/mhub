@@ -34,6 +34,8 @@ func (this *peer) start() {
 		return
 	}
 
+	log.Debug("%+v started", *this)
+
 	for job := range this.jobs {
 		err = job.m.Encode(this.conn) // replicated to peer
 		if err != nil {
@@ -54,19 +56,21 @@ type peers struct {
 	server *Server
 }
 
-func newPeers(server *Server, hosts []string) (this *peers) {
+func newPeers(server *Server) (this *peers) {
 	this = new(peers)
 	this.server = server
 	this.nodes = make(map[string]*peer)
-	for _, host := range hosts {
-		this.nodes[host] = newPeer(host)
-	}
 	return
 }
 
 func (this *peers) start(listenAddr string) error {
-	for _, p := range this.nodes {
-		go p.start()
+	go this.discover()
+
+	// add self to peers for testing, TODO kill this
+	if true {
+		node := "localhost:9090"
+		this.nodes[node] = newPeer(node)
+		go this.nodes[node].start()
 	}
 
 	listener, err := net.Listen("tcp", listenAddr)
@@ -89,8 +93,15 @@ func (this *peers) start(listenAddr string) error {
 	return nil
 }
 
+func (this *peers) discover() {
+	log.Debug("discovering...")
+
+}
+
 func (this *peers) recvReplication(conn net.Conn) {
 	defer conn.Close()
+
+	log.Debug("got a replicator: %s", conn.RemoteAddr().String())
 
 	for {
 		m, err := proto.DecodeOneMessage(conn, nil)
@@ -98,6 +109,8 @@ func (this *peers) recvReplication(conn net.Conn) {
 			log.Error(err)
 			return
 		}
+
+		log.Debug("a message for replication: %+v", m)
 
 		p, ok := m.(*proto.Publish)
 		if !ok {

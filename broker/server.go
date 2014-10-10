@@ -13,6 +13,7 @@ type Server struct {
 
 	stats *stats
 	subs  *subscriptions
+	peers *peers
 
 	Done chan struct{}
 }
@@ -40,6 +41,11 @@ func (this *Server) Start() {
 		panic(err)
 	}
 
+	this.peers = newPeers(this)
+	if err := this.peers.start(this.cf.Peers.ListenAddr); err != nil {
+		panic(err)
+	}
+
 	go func() {
 		for {
 			conn, err := listener.Accept()
@@ -48,6 +54,7 @@ func (this *Server) Start() {
 				continue
 			}
 
+			log.Debug("new client conn %s", conn.RemoteAddr().String())
 			this.stats.clientConnect()
 
 			client := &incomingConn{
@@ -68,6 +75,7 @@ func (this *Server) Stop() {
 func (this *Server) startListener() (listener net.Listener, err error) {
 	if this.cf.ListenAddr != "" {
 		listener, err = net.Listen("tcp", this.cf.ListenAddr)
+		log.Info("Accepting client conn on %s", this.cf.ListenAddr)
 		return
 	}
 
@@ -83,5 +91,6 @@ func (this *Server) startListener() (listener net.Listener, err error) {
 		NextProtos:   []string{"mqtt"},
 	}
 	listener, err = tls.Listen("tcp", this.cf.TlsListenAddr, cfg)
+	log.Info("Accepting TLS client conn on %s", this.cf.TlsListenAddr)
 	return
 }

@@ -18,7 +18,7 @@ type Config struct {
 
 	BroadcastWorkers int
 
-	Peers *PeersConfig
+	Peers PeersConfig
 }
 
 func LoadConfig(cf *conf.Conf) *Config {
@@ -40,10 +40,10 @@ func LoadConfig(cf *conf.Conf) *Config {
 
 	section, err := cf.Section("peers")
 	if err == nil {
-		this.Peers = &PeersConfig{}
+		this.Peers = PeersConfig{}
 		this.Peers.loadConfig(section)
 	}
 
-	log.Debug("config: %+v", *this)
+	log.Debug("Config: %+v", *this)
 	return this
 }
