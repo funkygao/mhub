@@ -1,3 +1,9 @@
+/*
+Simulates a number of pairs of clients where one is sending as fast as possible to the other.
+Realistically, this ends up testing the ability of the system to decode and queue messages, because
+any slight inbalance in scheduling of readers causes a pile up of messages from the writer slamming
+them down the throat of the server.
+*/
 package main
 
 import (
@@ -43,6 +49,7 @@ func main() {
 		go func(i int) {
 			sub(i, &wg)
 			pub(i)
+
 			wg.Done()
 		}(i)
 	}

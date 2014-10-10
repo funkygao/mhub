@@ -1,8 +1,12 @@
+/*
+Simulates a large number of clients who send a low transaction rate.
+The goal is to eventually use this to achieve 1 million (and more?) concurrent, active
+MQTT sessions in one server.
+*/
 package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -18,13 +22,14 @@ var host = flag.String("host", "localhost:1883", "hostname of broker")
 var user = flag.String("user", "", "username")
 var pass = flag.String("pass", "", "password")
 var dump = flag.Bool("dump", false, "dump messages?")
-var wait = flag.Int("wait", 10, "ms to wait between client connects")
-var pace = flag.Int("pace", 60, "send a message on average once every pace seconds")
+var wait = flag.Int("wait", 20, "ms to wait between client connects")
+var pace = flag.Int("pace", 10, "send a message on average once every pace seconds")
 
 var payload proto.Payload
 var topic string
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	flag.Parse()
 
 	if flag.NArg() != 2 {
@@ -56,7 +61,7 @@ func main() {
 }
 
 func client(i int) {
-	log.Print("starting client ", i)
+	log.Printf("starting client[%d]", i)
 	conn, err := net.Dial("tcp", *host)
 	if err != nil {
 		log.Fatal("dial: ", err)
@@ -71,6 +76,8 @@ func client(i int) {
 
 	half := int32(*pace / 2)
 
+	log.Printf("client[%d] connected", i)
+
 	for {
 		cc.Publish(&proto.Publish{
 			Header:    proto.Header{},
@@ -78,7 +85,7 @@ func client(i int) {
 			Payload:   payload,
 		})
 		sltime := rand.Int31n(half) - (half / 2) + int32(*pace)
+		log.Printf("client[%d] published, sleep %ds...", i, sltime)
 		time.Sleep(time.Duration(sltime) * time.Second)
-		fmt.Println(topic)
 	}
 }

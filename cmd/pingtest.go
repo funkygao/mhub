@@ -1,3 +1,7 @@
+/*
+Simulates a number of pairs of clients who are bouncing messages between them as fast as possible.
+It aims to measure latency of messages through the system when under load.
+*/
 package main
 
 import (
