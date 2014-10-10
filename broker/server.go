@@ -28,8 +28,9 @@ func NewServer(cf *config.Config) (this *Server) {
 		Done:  make(chan struct{}),
 		subs:  newSubscriptions(cf.Broker.SubscriptionsWorkers, stats),
 	}
+	this.peers = newPeers(this)
 
-	go this.stats.start()
+	go stats.start()
 
 	return
 }
@@ -41,7 +42,6 @@ func (this *Server) Start() {
 		panic(err)
 	}
 
-	this.peers = newPeers(this)
 	if err := this.peers.start(this.cf.Peers.ListenAddr); err != nil {
 		panic(err)
 	}

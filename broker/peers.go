@@ -93,7 +93,9 @@ func (this *peers) start(listenAddr string) error {
 				continue
 			}
 
+			this.server.stats.peerConnect()
 			log.Debug("peer[%s] accepted", conn.RemoteAddr().String())
+
 			go this.recvReplication(conn)
 		}
 	}()
@@ -110,7 +112,10 @@ func (this *peers) discover() {
 }
 
 func (this *peers) recvReplication(conn net.Conn) {
-	defer conn.Close()
+	defer func() {
+		conn.Close()
+		this.server.stats.peerDisconnect()
+	}()
 
 	for {
 		m, err := proto.DecodeOneMessage(conn, nil)
