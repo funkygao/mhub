@@ -12,3 +12,12 @@ func BenchmarkChannelClose(b *testing.B) {
 		close(c)
 	}
 }
+
+func BenchmarkIsWild(b *testing.B) {
+	const topic = "system/user/1212121212121/private"
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		isWildcard(topic)
+	}
+	b.SetBytes(int64(len(topic)))
+}
