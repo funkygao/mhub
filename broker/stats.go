@@ -24,7 +24,7 @@ func (this *stats) clientDisconnect() { atomic.AddInt64(&this.clients, -1) }
 func (this *stats) peerConnect()      { atomic.AddInt64(&this.peers, 1) }
 func (this *stats) peerDisconnect()   { atomic.AddInt64(&this.peers, -1) }
 
-func (this stats) String() string {
+func (this *stats) String() string {
 	return fmt.Sprintf("{recv:%d, sent:%d, clients:%d, peers:%d}",
 		atomic.LoadInt64(&this.recv), atomic.LoadInt64(&this.sent),
 		atomic.LoadInt64(&this.clients), atomic.LoadInt64(&this.peers))

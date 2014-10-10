@@ -25,8 +25,8 @@ func NewServer(cf *config.Config) (this *Server) {
 	this = &Server{
 		cf:    cf,
 		stats: stats,
-		Done:  make(chan struct{}),
 		subs:  newSubscriptions(cf.Broker.SubscriptionsWorkers, stats),
+		Done:  make(chan struct{}),
 	}
 	this.peers = newPeers(this)
 
