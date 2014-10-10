@@ -50,7 +50,7 @@ func (this *peers) start(listenAddr string) error {
 			}
 
 			this.server.stats.peerConnect()
-			log.Debug("peer[%s] accepted", conn.RemoteAddr().String())
+			log.Debug("peer[%s] accepted", conn.RemoteAddr())
 
 			go this.recvReplication(conn)
 		}
@@ -60,7 +60,7 @@ func (this *peers) start(listenAddr string) error {
 }
 
 func (this *peers) discover() {
-	log.Debug("discovering...")
+	log.Debug("discovering peers...")
 
 	// only after startup server, will it register to etcd
 	// otherwise, losing data
@@ -81,7 +81,9 @@ func (this *peers) recvReplication(conn net.Conn) {
 			return
 		}
 
-		log.Debug("a message for replication: %+v", m)
+		if this.server.cf.Peers.Echo {
+			log.Debug("peers <- %T %+v", m, m)
+		}
 
 		p, ok := m.(*proto.Publish)
 		if !ok {
@@ -118,8 +120,8 @@ func (this *peers) submit(m proto.Message) {
 
 type peer struct {
 	cf   config.PeersConfig
-	host string
-	conn net.Conn // outbound conn
+	host string   // host of other node, not myself
+	conn net.Conn // outbound conn to other node
 	jobs chan job
 }
 

@@ -15,6 +15,7 @@
         tcp_nodelay: true
         keepalive: true
         io_timeout: "2s"
+        echo: true
     }
 
     redis: {

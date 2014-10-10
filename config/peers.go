@@ -10,6 +10,7 @@ type PeersConfig struct {
 	TcpNoDelay bool
 	Keepalive  bool
 	IoTimeout  time.Duration
+	Echo       bool
 }
 
 func (this *PeersConfig) loadConfig(cf *conf.Conf) {
@@ -17,4 +18,5 @@ func (this *PeersConfig) loadConfig(cf *conf.Conf) {
 	this.Keepalive = cf.Bool("keepalive", true)
 	this.TcpNoDelay = cf.Bool("tcp_nodelay", true)
 	this.IoTimeout = cf.Duration("io_timeout", time.Second*10)
+	this.Echo = cf.Bool("echo", false)
 }

@@ -161,7 +161,7 @@ func (this *incomingConn) inboundLoop() {
 				return
 			}
 
-			log.Info("New client %s (c^%v, k^%v)",
+			log.Debug("new client: %s (c^%v, k^%v)",
 				this, m.CleanSession, m.KeepAliveTimer)
 
 		case *proto.Publish:
@@ -238,7 +238,7 @@ func (this *incomingConn) outboundLoop() {
 		select {
 		case job, on := <-this.jobs:
 			if !on {
-				log.Debug("%s jobs closed", this)
+				log.Debug("%s jobs closed", this) // TODO kill this log
 				return
 			}
 

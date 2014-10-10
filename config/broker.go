@@ -25,7 +25,7 @@ func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
 		this.TlsServerKey = cf.String("tls_server_key", "server.key")
 	}
 	this.StatsInterval = cf.Duration("stats_interval", 10*time.Minute)
-	this.Echo = cf.Bool("echo", true)
+	this.Echo = cf.Bool("echo", false)
 	this.SubscriptionsWorkers = cf.Int("subscriptions_workers", 10)
 
 	// validation
