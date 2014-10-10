@@ -88,10 +88,10 @@ func (this *incomingConn) inboundLoop() {
 	defer func() {
 		this.server.stats.clientDisconnect()
 
-		log.Debug("Closed client %s", this)
-
 		this.conn.Close()
 		close(this.jobs) // outbound loop will terminate
+
+		log.Debug("%s conn closed", this)
 	}()
 
 	for {
@@ -232,7 +232,12 @@ func (this *incomingConn) outboundLoop() {
 
 	for {
 		select {
-		case job := <-this.jobs:
+		case job, on := <-this.jobs:
+			if !on {
+				log.Debug("%s jobs closed", this)
+				return
+			}
+
 			if this.server.cf.Echo {
 				log.Debug("%s <- %T %+v", this, job.m, job.m)
 			}
