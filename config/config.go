@@ -4,41 +4,23 @@ package config
 import (
 	conf "github.com/funkygao/jsconf"
 	log "github.com/funkygao/log4go"
-	"time"
 )
 
 type Config struct {
-	ListenAddr    string
-	TlsListenAddr string
-	TlsServerCert string
-	TlsServerKey  string
-
-	StatsInterval time.Duration
-	Echo          bool
-
-	BroadcastWorkers int
-
-	Peers PeersConfig
+	Broker BrokerConfig
+	Peers  PeersConfig
 }
 
 func LoadConfig(cf *conf.Conf) *Config {
 	this := new(Config)
-	this.ListenAddr = cf.String("listen_addr", "")
-	this.TlsListenAddr = cf.String("tls_listen_addr", "")
-	if this.TlsListenAddr != "" {
-		this.TlsServerCert = cf.String("tls_server_cert", "server.crt")
-		this.TlsServerKey = cf.String("tls_server_key", "server.key")
+	section, err := cf.Section("broker")
+	if err != nil {
+		panic(err)
 	}
-	this.StatsInterval = cf.Duration("stats_interval", 10*time.Minute)
-	this.Echo = cf.Bool("echo", true)
-	this.BroadcastWorkers = cf.Int("broadcast_workers", 10)
+	this.Broker = BrokerConfig{}
+	this.Broker.loadConfig(section)
 
-	// validation
-	if this.ListenAddr == "" && this.TlsListenAddr == "" {
-		panic("Empty listen address and tls listen address")
-	}
-
-	section, err := cf.Section("peers")
+	section, err = cf.Section("peers")
 	if err == nil {
 		this.Peers = PeersConfig{}
 		this.Peers.loadConfig(section)

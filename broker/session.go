@@ -108,7 +108,7 @@ func (this *incomingConn) inboundLoop() {
 		this.server.stats.messageRecv()
 		this.refreshOpTime()
 
-		if this.server.cf.Echo {
+		if this.server.cf.Broker.Echo {
 			log.Debug("%s -> %T %+v", this, m, m)
 		}
 
@@ -238,7 +238,7 @@ func (this *incomingConn) outboundLoop() {
 				return
 			}
 
-			if this.server.cf.Echo {
+			if this.server.cf.Broker.Echo {
 				log.Debug("%s <- %T %+v", this, job.m, job.m)
 			}
 

@@ -1,11 +1,13 @@
 {
-    listen_addr: ":1883"
-    tls_listen_addr: ":8883"
-    tls_server_cert: ""
-    tls_server_key: ""
+    broker: {
+        listen_addr: ":1883"
+        tls_listen_addr: ":8883"
+        tls_server_cert: ""
+        tls_server_key: ""
 
-    stats_interval: "10m"
-    broadcast_workers: 10
+        stats_interval: "10m"
+        broadcast_workers: 10
+    }
 
     peers: {
         listen_addr: ":9090"
