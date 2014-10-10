@@ -11,7 +11,6 @@ Message hub, a real-time MQTT broker that supports cluster.
                               |
                       publish | subscribe
                               |
-                              | MQTT
                               |               cluster
                +------------------------------------+
                |                                    |
