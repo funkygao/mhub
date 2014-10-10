@@ -96,6 +96,9 @@ func (this *peers) start(listenAddr string) error {
 func (this *peers) discover() {
 	log.Debug("discovering...")
 
+	// only after startup server, will it register to etcd
+	// otherwise, losing data
+
 }
 
 func (this *peers) recvReplication(conn net.Conn) {
