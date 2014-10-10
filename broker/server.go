@@ -7,7 +7,7 @@ import (
 	"net"
 )
 
-// A Server holds all the state associated with an MQTT server.
+// MQTT broker server
 type Server struct {
 	cf *config.Config
 
@@ -18,8 +18,6 @@ type Server struct {
 	Done chan struct{}
 }
 
-// NewServer creates a new MQTT server, which accepts connections from
-// the given listener.
 func NewServer(cf *config.Config) (this *Server) {
 	stats := &stats{interval: cf.Broker.StatsInterval}
 	this = &Server{
@@ -35,7 +33,6 @@ func NewServer(cf *config.Config) (this *Server) {
 	return
 }
 
-// Start makes the Server start accepting and handling connections.
 func (this *Server) Start() {
 	listener, err := this.startListener()
 	if err != nil {

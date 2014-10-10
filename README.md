@@ -41,3 +41,4 @@ Message hub, a real-time MQTT broker that supports cluster.
 ### TODO
 *   cluster of brokers, scales with the number of MQTT clients
 *   ForceDisconnect after heartbeat idle too long
+*   errUseClosedConn

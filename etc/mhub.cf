@@ -5,7 +5,7 @@
         tls_server_cert: ""
         tls_server_key: ""
 
-        stats_interval: "10m"
+        stats_interval: "10s"
         subscriptions_workers: 10
         echo: true
     }

@@ -9,54 +9,6 @@ import (
 	"sync"
 )
 
-type peer struct {
-	cf   config.PeersConfig
-	host string
-	conn net.Conn
-	jobs chan job
-}
-
-func newPeer(host string, cf config.PeersConfig) (this *peer) {
-	return &peer{
-		cf:   cf,
-		host: host,
-		jobs: make(chan job, peersQueueLength),
-	}
-}
-
-func (this *peer) start() {
-	defer func() {
-		this.conn.Close()
-		close(this.jobs)
-	}()
-
-	var err error
-	this.conn, err = net.Dial("tcp", this.host)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	tcpConn, _ := this.conn.(*net.TCPConn)
-	tcpConn.SetNoDelay(this.cf.TcpNoDelay)
-	tcpConn.SetKeepAlive(this.cf.Keepalive)
-
-	log.Debug("peer[%+v] connected", this.host)
-
-	for job := range this.jobs {
-		err = job.m.Encode(this.conn) // replicated to peer
-		if err != nil {
-			log.Error(err)
-			return
-		}
-	}
-
-}
-
-func (this *peer) submit(m proto.Message) {
-	this.jobs <- job{m: m}
-}
-
 type peers struct {
 	nodes  map[string]*peer // key is hostname
 	mu     sync.Mutex
@@ -114,6 +66,7 @@ func (this *peers) discover() {
 func (this *peers) recvReplication(conn net.Conn) {
 	defer func() {
 		conn.Close()
+
 		this.server.stats.peerDisconnect()
 	}()
 
@@ -157,4 +110,54 @@ func (this *peers) submit(m proto.Message) {
 	for _, p := range this.nodes {
 		p.submit(m)
 	}
+}
+
+type peer struct {
+	cf   config.PeersConfig
+	host string
+	conn net.Conn // outbound conn
+	jobs chan job
+}
+
+func newPeer(host string, cf config.PeersConfig) (this *peer) {
+	return &peer{
+		cf:   cf,
+		host: host,
+		jobs: make(chan job, peersQueueLength),
+	}
+}
+
+func (this *peer) start() {
+	defer func() {
+		this.conn.Close()
+		close(this.jobs)
+	}()
+
+	var err error
+	this.conn, err = net.Dial("tcp", this.host)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	tcpConn, _ := this.conn.(*net.TCPConn)
+	tcpConn.SetNoDelay(this.cf.TcpNoDelay)
+	tcpConn.SetKeepAlive(this.cf.Keepalive)
+
+	log.Debug("peer[%+v] connected", this.host)
+
+	for job := range this.jobs {
+		err = job.m.Encode(this.conn) // replicated to peer
+		if err != nil {
+			log.Error(err)
+			return
+		}
+	}
+
+}
+
+func (this *peer) submit(m proto.Message) {
+	// TODO send on closed channel
+	// the principle is: senders close; receivers check for closed
+	this.jobs <- job{m: m}
 }
