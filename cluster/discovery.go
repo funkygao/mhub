@@ -66,7 +66,8 @@ func (this *Discoverer) Do(discoveryURL string, name string, peer string) (peers
 	resp, err := this.client.Create(path.Join(this.prefix, stateKey), startedState, 0)
 	if err != nil {
 		// Bail out on unexpected errors
-		if clientErr, ok := err.(*etcd.EtcdError); !ok || clientErr.ErrorCode != etcdErr.EcodeNodeExist {
+		if clientErr, ok := err.(*etcd.EtcdError); !ok ||
+			clientErr.ErrorCode != etcdErr.EcodeNodeExist {
 			return nil, err
 		}
 	}

@@ -47,12 +47,12 @@ func NewClientConn(c net.Conn) *ClientConn {
 		connack:  make(chan *proto.ConnAck),
 		suback:   make(chan *proto.SubAck),
 	}
-	go cc.reader()
-	go cc.writer()
+	go cc.inboundLoop()
+	go cc.outboundLoop()
 	return cc
 }
 
-func (c *ClientConn) reader() {
+func (c *ClientConn) inboundLoop() {
 	defer func() {
 		// Cause the writer to exit.
 		close(c.out)
@@ -97,7 +97,7 @@ func (c *ClientConn) reader() {
 	}
 }
 
-func (c *ClientConn) writer() {
+func (c *ClientConn) outboundLoop() {
 	// Close connection on exit in order to cause reader to exit.
 	defer func() {
 		// Signal to Disconnect() that the message is on its way, or
