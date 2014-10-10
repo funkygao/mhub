@@ -45,11 +45,11 @@ Thanks to https://github.com/jeffallen/mqtt
 
 ### Clustering
 
-* a client connecting to any node in a cluster can see all topics in the cluster.
+* no SPOF
+* a client PUBLISH to any node in a cluster will be seen by all the topic subscribers in the cluster
+    - PUBLISH is replicated across all broker nodes
 * broker nodes uses etcd for service auto discovery
 * new broker node automatically joins a cluster
-* PUBLISH is replicated across all broker nodes
-* no SPOF
 
 ### TODO
 *   cluster of brokers, scales with the number of MQTT clients
