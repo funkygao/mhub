@@ -33,8 +33,9 @@ Thanks to https://github.com/jeffallen/mqtt
 
 ### Network I/O
 
-
-                        +- peer
+                 etcd
+                  |
+                  |     +- peer
                 mhub ---|- peer
                   |     +- peer
                   |      
