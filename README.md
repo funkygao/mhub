@@ -53,5 +53,5 @@ MQTT clustering does not tolerate network partitions well, so it should not be u
 New node automatically joins a cluster.
 
 ### TODO
-*   rename to mhub
 *   cluster of brokers, scales with the number of MQTT clients
+*   ForceDisconnect
