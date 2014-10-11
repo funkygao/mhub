@@ -233,6 +233,11 @@ func (this *incomingConn) inboundLoop() {
 			log.Debug("%s actively disconnect", this)
 			return
 
+		case *proto.PubAck:
+			// get flying messages for this client
+			// if not found, ignore this PubAck
+			// if found, mark this flying message
+
 		default:
 			log.Warn("%s -> unexpected %T", this, m)
 			return
@@ -257,7 +262,7 @@ func (this *incomingConn) outboundLoop() {
 		select {
 		case job, on := <-this.jobs:
 			if !on {
-				log.Debug("%s jobs closed", this) // TODO kill this log
+				// jobs chan was closed by inboundLoop
 				return
 			}
 
