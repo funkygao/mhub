@@ -15,6 +15,7 @@ type incomingConn struct {
 
 	flag proto.Connect
 
+	alive         bool
 	conn          net.Conn
 	jobs          chan job
 	heartbeatStop chan struct{}
@@ -80,12 +81,16 @@ func (this *incomingConn) del() {
 	clientsMu.Unlock()
 }
 
-// Queue a message; no notification of sending is done.
 func (this *incomingConn) submit(m proto.Message) {
+	if !this.alive {
+		log.Warn("%s submit on dead client", this)
+		return
+	}
+
 	select {
 	case this.jobs <- job{m: m}:
 	default:
-		log.Error("%s: failed to put in jobs chan", this)
+		log.Error("%s: jobs full %d, lost %+v", this, len(this.jobs), m)
 	}
 }
 
@@ -104,7 +109,8 @@ func (this *incomingConn) inboundLoop() {
 	defer func() {
 		this.server.stats.clientDisconnect()
 
-		close(this.jobs) // will terminate outboundLoop
+		this.alive = false // to avoid send on closed channel subs.c.submit FIXME
+		close(this.jobs)   // will terminate outboundLoop
 	}()
 
 	for {

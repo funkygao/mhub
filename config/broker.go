@@ -11,14 +11,15 @@ type BrokerConfig struct {
 	TlsServerCert string
 	TlsServerKey  string
 
-	StatsInterval       time.Duration
-	MaxConnections      int // max concurrent client conns
-	Echo                bool
-	StatsHttpListenAddr string
-	ProfHttpListenAddr  string
-
-	SubscriptionsWorkers  int
-	AllowAnonymousConnect bool
+	StatsInterval          time.Duration
+	MaxConnections         int // max concurrent client conns
+	Echo                   bool
+	StatsHttpListenAddr    string
+	ProfHttpListenAddr     string
+	AllowAnonymousConnect  bool
+	ClientOutboundQueueLen int
+	SubscriptionsWorkers   int
+	SubscriptionsQueueLen  int
 }
 
 func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
@@ -33,8 +34,10 @@ func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
 	this.ProfHttpListenAddr = cf.String("prof_http_listen_addr", "")
 	this.Echo = cf.Bool("echo", false)
 	this.SubscriptionsWorkers = cf.Int("subscriptions_workers", 10)
+	this.SubscriptionsQueueLen = cf.Int("subscriptions_queue_len", 500)
 	this.AllowAnonymousConnect = cf.Bool("allow_anonymous", false)
 	this.MaxConnections = cf.Int("max_connections", 50000)
+	this.ClientOutboundQueueLen = cf.Int("client_outbound_queue_len", 100)
 
 	// validation
 	if this.ListenAddr == "" && this.TlsListenAddr == "" {

@@ -16,11 +16,11 @@ type subscriptions struct {
 	stats     *stats
 }
 
-func newSubscriptions(workers int, stats *stats) *subscriptions {
+func newSubscriptions(workers int, queueLen int, stats *stats) *subscriptions {
 	this := &subscriptions{
 		subs:   make(map[string][]*incomingConn),
 		retain: make(map[string]retain),
-		posts:  make(chan post, postQueue),
+		posts:  make(chan post, queueLen),
 		stats:  stats,
 	}
 	for i := 0; i < workers; i++ {

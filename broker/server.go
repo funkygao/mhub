@@ -25,8 +25,9 @@ func NewServer(cf *config.Config) (this *Server) {
 	this = &Server{
 		cf:    cf,
 		stats: stats,
-		subs:  newSubscriptions(cf.Broker.SubscriptionsWorkers, stats),
-		Done:  make(chan struct{}),
+		subs: newSubscriptions(cf.Broker.SubscriptionsWorkers,
+			cf.Broker.SubscriptionsQueueLen, stats),
+		Done: make(chan struct{}),
 	}
 	this.peers = newPeers(this)
 
@@ -58,9 +59,10 @@ func (this *Server) Start() {
 			this.stats.clientConnect()
 
 			client := &incomingConn{
+				alive:         true,
 				server:        this,
 				conn:          conn,
-				jobs:          make(chan job, sendingQueueLength),
+				jobs:          make(chan job, this.cf.Broker.ClientOutboundQueueLen),
 				heartbeatStop: make(chan struct{}),
 			}
 			go client.inboundLoop()

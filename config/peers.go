@@ -11,6 +11,7 @@ type PeersConfig struct {
 	Keepalive  bool
 	IoTimeout  time.Duration
 	Echo       bool
+	QueueLen   int
 }
 
 func (this *PeersConfig) loadConfig(cf *conf.Conf) {
@@ -19,4 +20,5 @@ func (this *PeersConfig) loadConfig(cf *conf.Conf) {
 	this.TcpNoDelay = cf.Bool("tcp_nodelay", true)
 	this.IoTimeout = cf.Duration("io_timeout", time.Second*10)
 	this.Echo = cf.Bool("echo", false)
+	this.QueueLen = cf.Int("queue_len", 1000) // FIXME
 }
