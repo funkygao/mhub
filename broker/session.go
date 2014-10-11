@@ -28,8 +28,7 @@ func (this *incomingConn) refreshOpTime() {
 }
 
 func (this *incomingConn) heartbeat(interval time.Duration) {
-	if interval == 0 {
-		// disabled
+	if interval == 0 { // disabled
 		return
 	}
 
@@ -37,10 +36,12 @@ func (this *incomingConn) heartbeat(interval time.Duration) {
 	for {
 		select {
 		case <-ticker.C:
-			deadline := int64(float64(this.lastOpTime) + float64(interval)*1.5)
-			if deadline < time.Now().Unix() {
+			deadline := int64(float64(this.lastOpTime) + interval.Seconds()*1.5)
+			overIdle := time.Now().Unix() - deadline
+			if overIdle > 0 {
 				// ForceDisconnect(client, G_clients_lock, SEND_WILL) TODO
-				log.Warn("client(%s) idle too long, kicked out", this)
+				//this.submit(&proto.Disconnect{})
+				log.Warn("client(%s) over idle %ds, kicked out", this, overIdle)
 			}
 		}
 	}

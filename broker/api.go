@@ -24,10 +24,12 @@ func init() {
 // A ClientConn holds all the state associated with a connection
 // to an MQTT server. It should be allocated via NewClientConn.
 type ClientConn struct {
-	ClientId string // May be set before the call to Connect.
-	conn     net.Conn
-	Dump     bool                // When true, dump the messages in and out.
-	Incoming chan *proto.Publish // Incoming messages arrive on this channel.
+	ClientId  string // May be set before the call to Connect.
+	KeepAlive uint16
+	Dump      bool                // When true, dump the messages in and out.
+	Incoming  chan *proto.Publish // Incoming messages arrive on this channel.
+
+	conn net.Conn
 
 	out      chan job
 	doneChan chan struct{}
@@ -135,6 +137,7 @@ func (c *ClientConn) Connect(user, pass string) error {
 		ProtocolVersion: protocolVersion,
 		ClientId:        c.ClientId,
 		CleanSession:    true,
+		KeepAliveTimer:  c.KeepAlive,
 	}
 	if user != "" {
 		req.UsernameFlag = true
