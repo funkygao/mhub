@@ -170,9 +170,7 @@ func (this *incomingConn) inboundLoop() {
 				// deliver on connect
 			}
 
-			this.submit(&proto.ConnAck{
-				ReturnCode: rc,
-			})
+			this.submit(&proto.ConnAck{ReturnCode: rc})
 
 			// close connection if it was a bad connect
 			if rc != proto.RetCodeAccepted {
@@ -214,7 +212,7 @@ func (this *incomingConn) inboundLoop() {
 			}
 			this.submit(suback)
 
-			// Process retained messages.
+			// Process retained messages
 			for _, tq := range m.Topics {
 				this.server.subs.sendRetain(tq.Topic, this)
 			}
