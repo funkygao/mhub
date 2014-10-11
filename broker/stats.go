@@ -5,6 +5,8 @@ import (
 	"github.com/funkygao/golib/gofmt"
 	"github.com/funkygao/golib/server"
 	log "github.com/funkygao/log4go"
+	"github.com/gorilla/mux"
+	"net/http"
 	"runtime"
 	"sync/atomic"
 	"syscall"
@@ -12,7 +14,9 @@ import (
 )
 
 type stats struct {
-	interval time.Duration
+	interval        time.Duration
+	statsListenAddr string
+	profListenAddr  string
 
 	topics   int64 // TODO
 	recv     int64
@@ -48,8 +52,12 @@ func (this *stats) Clients() int {
 }
 
 func (this *stats) start() {
+	this.launchHttpServ()
 	ticker := time.NewTicker(this.interval)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		this.stopHttpServ()
+	}()
 
 	var (
 		ms           = new(runtime.MemStats)
@@ -82,4 +90,71 @@ func (this *stats) start() {
 			userCpuUtil,
 			sysCpuUtil)
 	}
+}
+
+func (this *stats) launchHttpServ() {
+	if this.statsListenAddr == "" {
+		return
+	}
+
+	server.LaunchHttpServ(this.statsListenAddr, this.profListenAddr)
+	server.RegisterHttpApi("/s/{cmd}",
+		func(w http.ResponseWriter, req *http.Request,
+			params map[string]interface{}) (interface{}, error) {
+			return this.handleHttpQuery(w, req, params)
+		}).Methods("GET")
+}
+
+func (this *stats) stopHttpServ() {
+	server.StopHttpServ()
+}
+
+func (this *stats) handleHttpQuery(w http.ResponseWriter, req *http.Request,
+	params map[string]interface{}) (interface{}, error) {
+	var (
+		vars   = mux.Vars(req)
+		cmd    = vars["cmd"]
+		output = make(map[string]interface{})
+	)
+
+	switch cmd {
+	case "ping":
+		output["status"] = "ok"
+
+	case "ver":
+		output["ver"] = server.BuildID
+
+	case "trace":
+		stack := make([]byte, 1<<20)
+		stackSize := runtime.Stack(stack, true)
+		output["callstack"] = string(stack[:stackSize])
+
+	case "sys":
+		output["goroutines"] = runtime.NumGoroutine()
+
+		memStats := new(runtime.MemStats)
+		runtime.ReadMemStats(memStats)
+		output["memory"] = *memStats
+
+		rusage := syscall.Rusage{}
+		syscall.Getrusage(0, &rusage)
+		output["rusage"] = rusage
+
+	case "stat":
+		output["stats"] = this.String()
+
+	}
+
+	output["links"] = []string{
+		"/s/ping",
+		"/s/ver",
+		"s/sys",
+		"/s/stat",
+		"/s/trace",
+	}
+	if this.profListenAddr != "" {
+		output["pprof"] = "http://" + this.profListenAddr + "/debug/pprof/"
+	}
+
+	return output, nil
 }

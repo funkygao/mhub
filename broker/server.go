@@ -19,7 +19,9 @@ type Server struct {
 }
 
 func NewServer(cf *config.Config) (this *Server) {
-	stats := &stats{interval: cf.Broker.StatsInterval}
+	stats := &stats{interval: cf.Broker.StatsInterval,
+		statsListenAddr: cf.Broker.StatsHttpListenAddr,
+		profListenAddr:  cf.Broker.ProfHttpListenAddr}
 	this = &Server{
 		cf:    cf,
 		stats: stats,

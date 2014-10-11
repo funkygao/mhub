@@ -26,6 +26,6 @@ func LoadConfig(cf *conf.Conf) *Config {
 		this.Peers.loadConfig(section)
 	}
 
-	log.Debug("Config: %+v", *this)
+	log.Info("Config: %+v", *this)
 	return this
 }

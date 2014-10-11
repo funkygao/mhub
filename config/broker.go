@@ -11,9 +11,11 @@ type BrokerConfig struct {
 	TlsServerCert string
 	TlsServerKey  string
 
-	StatsInterval  time.Duration
-	MaxConnections int // max concurrent client conns
-	Echo           bool
+	StatsInterval       time.Duration
+	MaxConnections      int // max concurrent client conns
+	Echo                bool
+	StatsHttpListenAddr string
+	ProfHttpListenAddr  string
 
 	SubscriptionsWorkers  int
 	AllowAnonymousConnect bool
@@ -26,7 +28,9 @@ func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
 		this.TlsServerCert = cf.String("tls_server_cert", "server.crt")
 		this.TlsServerKey = cf.String("tls_server_key", "server.key")
 	}
+	this.StatsHttpListenAddr = cf.String("stats_http_listen_addr", "")
 	this.StatsInterval = cf.Duration("stats_interval", 10*time.Minute)
+	this.ProfHttpListenAddr = cf.String("prof_http_listen_addr", "")
 	this.Echo = cf.Bool("echo", false)
 	this.SubscriptionsWorkers = cf.Int("subscriptions_workers", 10)
 	this.AllowAnonymousConnect = cf.Bool("allow_anonymous", false)
