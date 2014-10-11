@@ -28,5 +28,6 @@ func newRedisClient(cf config.RedisConfig) *redisClient {
 			return err
 		},
 	}
+
 	return this
 }

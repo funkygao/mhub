@@ -15,9 +15,9 @@ type Server struct {
 	subs  *subscriptions
 	peers *peers
 
-	Done chan struct{}
+	redis *redisClient // topic|subscription|message persistence
 
-	redis *redisClient
+	Done chan struct{}
 }
 
 func NewServer(cf *config.Config) (this *Server) {
