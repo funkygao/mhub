@@ -122,7 +122,7 @@ func (this *incomingConn) inboundLoop() {
 		}
 
 		switch m := m.(type) {
-		case *proto.Connect:
+		case *proto.Connect: // TODO close conn if too long no Connect
 			rc := proto.RetCodeAccepted
 
 			// validate protocol name and version
@@ -177,23 +177,22 @@ func (this *incomingConn) inboundLoop() {
 				this, m.CleanSession, m.KeepAliveTimer)
 
 		case *proto.Publish:
-			// TODO support QoS 1
-			if m.Header.QosLevel != proto.QosAtMostOnce {
-				log.Error("inbound: no support for QoS %v yet", m.Header.QosLevel)
-				return
+			// TODO assert m.TopicName is not wildcard
+
+			// replicate message to all subscribers of this topic
+			this.server.subs.submit(m)
+
+			// replication to peers
+			this.server.peers.submit(m)
+
+			// A PUBACK message is the response to a PUBLISH message with QoS level 1
+			if m.Header.QosLevel == proto.QosAtLeastOnce { // QoS 1
+				if m.MessageId == 0 {
+					log.Error("client[%s] invalid message id", this)
+				}
+
+				this.submit(&proto.PubAck{MessageId: m.MessageId})
 			}
-
-			if isWildcard(m.TopicName) {
-				log.Error("inbound: ignoring PUBLISH with wildcard topic ", m.TopicName)
-			} else {
-				// replicate message to all subscribers of this topic
-				this.server.subs.submit(m)
-
-				// replication to peers
-				this.server.peers.submit(m)
-			}
-
-			this.submit(&proto.PubAck{MessageId: m.MessageId})
 
 		case *proto.PingReq:
 			this.submit(&proto.PingResp{})
