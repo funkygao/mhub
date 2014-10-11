@@ -15,9 +15,10 @@ type incomingConn struct {
 
 	flag proto.Connect
 
-	conn       net.Conn
-	jobs       chan job
-	lastOpTime int64 // // Last Unix timestamp when recieved message from this conn
+	conn          net.Conn
+	jobs          chan job
+	heartbeatStop chan struct{}
+	lastOpTime    int64 // // Last Unix timestamp when recieved message from this conn
 }
 
 func (this *incomingConn) String() string {
@@ -28,21 +29,22 @@ func (this *incomingConn) refreshOpTime() {
 	atomic.StoreInt64(&this.lastOpTime, time.Now().Unix())
 }
 
-func (this *incomingConn) heartbeat(interval time.Duration) {
-	if interval == 0 { // disabled
-		return
-	}
+func (this *incomingConn) heartbeat(keepAliveTimer time.Duration) {
+	ticker := time.NewTicker(keepAliveTimer)
+	defer func() {
+		ticker.Stop()
+		log.Debug("%s hearbeat stopped", this)
+	}()
 
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			deadline := int64(float64(this.lastOpTime) + interval.Seconds()*1.5)
+			// 1.5*KeepAliveTimer latency tolerance
+			deadline := int64(float64(this.lastOpTime) + keepAliveTimer.Seconds()*1.5)
 			overIdle := time.Now().Unix() - deadline
 			if overIdle > 0 {
 				this.submitSync(&proto.Disconnect{}).wait()
-				log.Warn("client(%s) over idle %ds, kicked out", this, overIdle)
+				log.Warn("%s over idle %ds, kicked out", this, overIdle)
 
 				if this.flag.WillFlag {
 					// TODO broker will publish a message on behalf of the client
@@ -50,6 +52,9 @@ func (this *incomingConn) heartbeat(interval time.Duration) {
 
 				return
 			}
+
+		case <-this.heartbeatStop:
+			return
 		}
 	}
 
@@ -150,7 +155,9 @@ func (this *incomingConn) inboundLoop() {
 			}
 			this.add()
 
-			go this.heartbeat(time.Duration(m.KeepAliveTimer) * time.Second)
+			if m.KeepAliveTimer > 0 {
+				go this.heartbeat(time.Duration(m.KeepAliveTimer) * time.Second)
+			}
 
 			// TODO: Last will
 			// The will option allows clients to prepare for the worst.
@@ -185,7 +192,7 @@ func (this *incomingConn) inboundLoop() {
 			// replication to peers
 			this.server.peers.submit(m)
 
-			// A PUBACK message is the response to a PUBLISH message with QoS level 1
+			// for QoS 0, we need do nothing
 			if m.Header.QosLevel == proto.QosAtLeastOnce { // QoS 1
 				if m.MessageId == 0 {
 					log.Error("client[%s] invalid message id", this)
@@ -194,15 +201,7 @@ func (this *incomingConn) inboundLoop() {
 				this.submit(&proto.PubAck{MessageId: m.MessageId})
 			}
 
-		case *proto.PingReq:
-			this.submit(&proto.PingResp{})
-
 		case *proto.Subscribe:
-			if m.Header.QosLevel != proto.QosAtLeastOnce {
-				// protocol error, disconnect
-				return
-			}
-
 			suback := &proto.SubAck{
 				MessageId: m.MessageId,
 				TopicsQos: make([]proto.QosLevel, len(m.Topics)),
@@ -227,12 +226,15 @@ func (this *incomingConn) inboundLoop() {
 
 			this.submit(&proto.UnsubAck{MessageId: m.MessageId})
 
+		case *proto.PingReq:
+			this.submit(&proto.PingResp{})
+
 		case *proto.Disconnect:
 			log.Debug("%s actively disconnect", this)
 			return
 
 		default:
-			log.Error("inbound: unknown msg type %T", m)
+			log.Warn("%s -> unexpected %T", this, m)
 			return
 		}
 	}
@@ -244,6 +246,7 @@ func (this *incomingConn) outboundLoop() {
 		// only outboundLoop can close conn,
 		// otherwise outboundLoop will error: use of closed network connection
 		log.Debug("%s conn closed", this)
+		close(this.heartbeatStop)
 		this.conn.Close()
 
 		this.del()

@@ -56,9 +56,10 @@ func (this *Server) Start() {
 			this.stats.clientConnect()
 
 			client := &incomingConn{
-				server: this,
-				conn:   conn,
-				jobs:   make(chan job, sendingQueueLength),
+				server:        this,
+				conn:          conn,
+				jobs:          make(chan job, sendingQueueLength),
+				heartbeatStop: make(chan struct{}),
 			}
 			go client.inboundLoop()
 			go client.outboundLoop()
