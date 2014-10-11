@@ -31,6 +31,8 @@
     }
 
     redis: {
+        max_idle: 5
+        idle_timeout: "360s"
         server: "localhost:6379"
     }
 }
