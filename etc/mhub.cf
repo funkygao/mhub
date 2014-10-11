@@ -31,7 +31,6 @@
     }
 
     redis: {
-        servers: [
-        ]
+        server: "localhost:6379"
     }
 }
