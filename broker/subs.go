@@ -8,12 +8,11 @@ import (
 )
 
 type subscriptions struct {
-	posts chan post
-
+	posts     chan post
 	mu        sync.Mutex                 // guards access to fields below
 	subs      map[string][]*incomingConn // key is topic
+	retain    map[string]retain          // key is topic
 	wildcards []wild
-	retain    map[string]retain // key is topic
 	stats     *stats
 }
 

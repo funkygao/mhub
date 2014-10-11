@@ -155,10 +155,12 @@ func (this *incomingConn) inboundLoop() {
 			// TODO: Last will
 			// The will option allows clients to prepare for the worst.
 			if !m.CleanSession {
-				// This force the broker to keep the client’s last session.
+				// broker will keep the subscription active even after the client disconnects
+				// It will also queue any new messages it receives for the client, but
+				// only if they have QoS>0
+				// restore client's subscriptions
 				// deliver flying messages TODO
 				// deliver on connect
-				// restore client's subscriptions
 			}
 
 			this.submit(&proto.ConnAck{
