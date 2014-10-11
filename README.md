@@ -62,6 +62,12 @@ Thanks to https://github.com/jeffallen/mqtt
           |       |        |
         client  client  client
 
+
+### Capacity Plan
+
+* throughput
+* max concurrenty conn
+
 ### Clustering
 
 * no SPOF
@@ -75,6 +81,8 @@ Thanks to https://github.com/jeffallen/mqtt
 * client id
   - clients need to have an identifier that is unique for all clients connecting to the broker
 * message id
+  - PUBLISH messages with QoS1/2 require a message id as part of the packet
+  - are handled on a per client and per direction basis
 
 ### TODO
 *   cluster of brokers, scales with the number of MQTT clients
