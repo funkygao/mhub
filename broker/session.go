@@ -13,14 +13,15 @@ import (
 type incomingConn struct {
 	server *Server
 
+	flag proto.Connect
+
 	conn       net.Conn
 	jobs       chan job
 	lastOpTime int64 // // Last Unix timestamp when recieved message from this conn
-	clientid   string
 }
 
 func (this *incomingConn) String() string {
-	return this.clientid + "@" + this.conn.RemoteAddr().String()
+	return this.flag.ClientId + "@" + this.conn.RemoteAddr().String()
 }
 
 func (this *incomingConn) refreshOpTime() {
@@ -42,6 +43,11 @@ func (this *incomingConn) heartbeat(interval time.Duration) {
 			if overIdle > 0 {
 				this.submitSync(&proto.Disconnect{}).wait()
 				log.Warn("client(%s) over idle %ds, kicked out", this, overIdle)
+
+				if this.flag.WillFlag {
+					// TODO broker will publish a message on behalf of the client
+				}
+
 				return
 			}
 		}
@@ -53,19 +59,19 @@ func (this *incomingConn) add() *incomingConn {
 	clientsMu.Lock()
 	defer clientsMu.Unlock()
 
-	existing, present := clients[this.clientid]
+	existing, present := clients[this.flag.ClientId]
 	if present {
 		return existing
 	}
 
-	clients[this.clientid] = this
+	clients[this.flag.ClientId] = this
 	return nil
 }
 
 // Delete a connection; the conection must be closed by the caller first.
 func (this *incomingConn) del() {
 	clientsMu.Lock()
-	delete(clients, this.clientid)
+	delete(clients, this.flag.ClientId)
 	clientsMu.Unlock()
 }
 
@@ -132,7 +138,7 @@ func (this *incomingConn) inboundLoop() {
 			if len(m.ClientId) < 1 || len(m.ClientId) > maxClientIdLength {
 				rc = proto.RetCodeIdentifierRejected
 			}
-			this.clientid = m.ClientId
+			this.flag = *m // connection flag
 
 			// Disconnect existing connections.
 			if existing := this.add(); existing != nil {
@@ -149,6 +155,7 @@ func (this *incomingConn) inboundLoop() {
 			// TODO: Last will
 			// The will option allows clients to prepare for the worst.
 			if !m.CleanSession {
+				// This force the broker to keep the client’s last session.
 				// deliver flying messages TODO
 				// deliver on connect
 				// restore client's subscriptions
