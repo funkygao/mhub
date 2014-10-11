@@ -1,13 +1,17 @@
 package broker
 
 import (
+	log "github.com/funkygao/log4go"
 	"github.com/funkygao/mhub/config"
+	"github.com/funkygao/msgpack"
 	"github.com/funkygao/redigo/redis"
+	"sync"
 	"time"
 )
 
 type redisClient struct {
 	pool *redis.Pool
+	mu   sync.Mutex // redis.Do is not goroutine safe
 }
 
 func newRedisClient(cf config.RedisConfig) *redisClient {
@@ -30,4 +34,45 @@ func newRedisClient(cf config.RedisConfig) *redisClient {
 	}
 
 	return this
+}
+
+func (this *redisClient) Store(key string, val interface{}) {
+	this.mu.Lock()
+	m, err := msgpack.Marshal(val)
+	if err != nil {
+		log.Error(err)
+	}
+	_, err = this.pool.Get().Do("SET", key, m)
+	if err != nil {
+		log.Error(err)
+	}
+	this.mu.Unlock()
+}
+
+func (this *redisClient) Get(key string, val interface{}) {
+	this.mu.Lock()
+	m, err := redis.Bytes(this.pool.Get().Do("GET", key))
+	if err != nil {
+		log.Error(err)
+	}
+	err = msgpack.Unmarshal(m, val)
+	if err != nil {
+		log.Error(err)
+	}
+	this.mu.Unlock()
+}
+
+func (this *redisClient) Del(key string) {
+	this.mu.Lock()
+	this.pool.Get().Do("DEL", key)
+	this.mu.Unlock()
+}
+
+func (this *redisClient) Expire(key string, sec uint64) {
+	this.mu.Lock()
+	_, err := this.pool.Get().Do("EXPIRE", key, sec)
+	if err != nil {
+		log.Error(err)
+	}
+	this.mu.Unlock()
 }

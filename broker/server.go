@@ -7,7 +7,7 @@ import (
 	"net"
 )
 
-// MQTT broker server
+// MQTT broker
 type Server struct {
 	cf *config.Config
 
