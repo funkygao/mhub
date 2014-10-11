@@ -7,22 +7,14 @@ Thanks to https://github.com/jeffallen/mqtt
 
 ### Why MQTT
 
-* pub/sub model
-* bidirectionnal
-* complement to enterprise messaging systems so that a wealth of data outside the enterprise could be safely and easily brought inside the enterprise
-* lightweight 
-* network(especially mobile) is not 100% reliable
+* a lightweight bidirectionnal protocol of pub/sub/push model for constrained environment and devices
+* support for loss of contact between c/s(last will)
 * mobile battery friendly
 * max payload 256MB, just bytes array without format
 * QoS on a per-message basis
 * TLS & user/pass authentication/authorization
 * rich client API with all of 5 protocol methods
-  - connect
-    - ping(internally)
-  - disconnect
-  - publish
-  - subscribe
-  - unsubscribe
+  - connect, publish, (un)subscribe, disconnect
 
 ### Arch
 
@@ -90,6 +82,6 @@ Thanks to https://github.com/jeffallen/mqtt
 *   security
 *   connect/io timeout of client/peers
 *   more edge cases testing
-*   retain, will
+*   retain, last will
     - with retain flag true, the published message is held onto by the broker, so when the late arrivers connect to the broker or clients create a new subscription they get all the relevant retained messages.
-*   persistency
+*   persistency of messages
