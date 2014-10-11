@@ -33,15 +33,16 @@ func (this *incomingConn) heartbeat(interval time.Duration) {
 	}
 
 	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
 			deadline := int64(float64(this.lastOpTime) + interval.Seconds()*1.5)
 			overIdle := time.Now().Unix() - deadline
 			if overIdle > 0 {
-				// ForceDisconnect(client, G_clients_lock, SEND_WILL) TODO
-				//this.submit(&proto.Disconnect{})
+				this.submitSync(&proto.Disconnect{}).wait()
 				log.Warn("client(%s) over idle %ds, kicked out", this, overIdle)
+				return
 			}
 		}
 	}
@@ -121,12 +122,13 @@ func (this *incomingConn) inboundLoop() {
 			// validate protocol name and version
 			if m.ProtocolName != protocolName ||
 				m.ProtocolVersion != protocolVersion {
-				log.Error("inbound: reject connection from %s, version %d",
+				log.Error("invalid connection[%s] protocol %s, version %d",
+					this,
 					m.ProtocolName, m.ProtocolVersion)
 				rc = proto.RetCodeUnacceptableProtocolVersion
 			}
 
-			// validate client id
+			// validate client id length
 			if len(m.ClientId) < 1 || len(m.ClientId) > maxClientIdLength {
 				rc = proto.RetCodeIdentifierRejected
 			}
@@ -266,7 +268,6 @@ func (this *incomingConn) outboundLoop() {
 			this.server.stats.messageSend()
 
 			if _, ok := job.m.(*proto.Disconnect); ok {
-				log.Error("%s actively disconnect", this)
 				return
 			}
 		}
