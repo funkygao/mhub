@@ -145,12 +145,18 @@ func (this *incomingConn) inboundLoop() {
 			}
 			this.flag = *m // connection flag
 
+			// authentication
 			if !this.server.cf.Broker.AllowAnonymousConnect &&
 				(!m.UsernameFlag || m.Username == "" ||
 					!m.PasswordFlag || m.Password == "") {
 				rc = proto.RetCodeNotAuthorized
 			} else if m.UsernameFlag && !this.authenticate(m.Username, m.Password) {
 				rc = proto.RetCodeBadUsernameOrPassword
+			}
+
+			if this.server.cf.Broker.MaxConnections > 0 &&
+				this.server.stats.Clients() > this.server.cf.Broker.MaxConnections {
+				rc = proto.RetCodeServerUnavailable
 			}
 
 			// Disconnect existing connections.

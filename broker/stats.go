@@ -35,6 +35,11 @@ func (this *stats) String() string {
 		atomic.LoadInt64(&this.clients), atomic.LoadInt64(&this.peers))
 }
 
+// current simultaneous client conns
+func (this *stats) Clients() int {
+	return int(atomic.LoadInt64(&this.clients))
+}
+
 func (this *stats) start() {
 	ticker := time.NewTicker(this.interval)
 	defer ticker.Stop()

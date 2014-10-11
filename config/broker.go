@@ -11,8 +11,9 @@ type BrokerConfig struct {
 	TlsServerCert string
 	TlsServerKey  string
 
-	StatsInterval time.Duration
-	Echo          bool
+	StatsInterval  time.Duration
+	MaxConnections int // max concurrent client conns
+	Echo           bool
 
 	SubscriptionsWorkers  int
 	AllowAnonymousConnect bool
@@ -29,6 +30,7 @@ func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
 	this.Echo = cf.Bool("echo", false)
 	this.SubscriptionsWorkers = cf.Int("subscriptions_workers", 10)
 	this.AllowAnonymousConnect = cf.Bool("allow_anonymous", false)
+	this.MaxConnections = cf.Int("max_connections", 50000)
 
 	// validation
 	if this.ListenAddr == "" && this.TlsListenAddr == "" {
