@@ -82,6 +82,8 @@ Thanks to https://github.com/jeffallen/mqtt
 *   security
 *   connect/io timeout of client/peers
 *   more edge cases testing
-*   retain, last will
+*   retain, last will, clean session
+    - retain is 'last known good value'
     - with retain flag true, the published message is held onto by the broker, so when the late arrivers connect to the broker or clients create a new subscription they get all the relevant retained messages.
 *   persistency of messages
+*   c(pub)->s(pub to subs), msg id may conflict

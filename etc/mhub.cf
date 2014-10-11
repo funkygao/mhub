@@ -8,6 +8,9 @@
         stats_interval: "10s"
         subscriptions_workers: 10
         echo: true
+
+        allow_anonymous: true
+        max_queued_messages: 100
     }
 
     peers: {

@@ -14,7 +14,8 @@ type BrokerConfig struct {
 	StatsInterval time.Duration
 	Echo          bool
 
-	SubscriptionsWorkers int
+	SubscriptionsWorkers  int
+	AllowAnonymousConnect bool
 }
 
 func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
@@ -27,6 +28,7 @@ func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
 	this.StatsInterval = cf.Duration("stats_interval", 10*time.Minute)
 	this.Echo = cf.Bool("echo", false)
 	this.SubscriptionsWorkers = cf.Int("subscriptions_workers", 10)
+	this.AllowAnonymousConnect = cf.Bool("allow_anonymous", false)
 
 	// validation
 	if this.ListenAddr == "" && this.TlsListenAddr == "" {

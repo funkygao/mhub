@@ -145,6 +145,14 @@ func (this *incomingConn) inboundLoop() {
 			}
 			this.flag = *m // connection flag
 
+			if !this.server.cf.Broker.AllowAnonymousConnect &&
+				(!m.UsernameFlag || m.Username == "" ||
+					!m.PasswordFlag || m.Password == "") {
+				rc = proto.RetCodeNotAuthorized
+			} else if m.UsernameFlag && !this.authenticate(m.Username, m.Password) {
+				rc = proto.RetCodeBadUsernameOrPassword
+			}
+
 			// Disconnect existing connections.
 			if existing := this.add(); existing != nil {
 				log.Warn("found dup client: %s", this)
@@ -287,4 +295,9 @@ func (this *incomingConn) outboundLoop() {
 		}
 	}
 
+}
+
+func (this *incomingConn) authenticate(username, passwd string) (ok bool) {
+	ok = true
+	return
 }
