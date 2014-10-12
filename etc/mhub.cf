@@ -23,6 +23,7 @@
     }
 
     peers: {
+        self_id: 1
         listen_addr: ":9090"
         tcp_nodelay: true
         keepalive: true

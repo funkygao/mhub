@@ -173,8 +173,8 @@ func (this *incomingConn) inboundLoop() {
 			if existing := this.add(); existing != nil {
 				log.Warn("found dup client: %s", this)
 
-				disconnect := &proto.Disconnect{}
-				existing.submitSync(disconnect).wait()
+				// force disconnect existing client
+				existing.submitSync(&proto.Disconnect{}).wait()
 				existing.del()
 			}
 			this.add()
@@ -332,4 +332,9 @@ func (this *incomingConn) authenticate(username, passwd string) (ok bool) {
 // TODO
 func (this *incomingConn) validateMessage(m proto.Message) {
 	// must CONNECT before other methods
+}
+
+// TODO
+func (this *incomingConn) nextInternalMsgId() {
+
 }
