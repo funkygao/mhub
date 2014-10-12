@@ -12,9 +12,10 @@ import (
 type Server struct {
 	cf *config.Config
 
-	stats *stats
-	subs  *subscriptions
-	peers *peers
+	clients *clients1
+	stats   *stats
+	subs    *subscriptions
+	peers   *peers
 
 	redis *redisClient // topic|subscription|message persistence
 
