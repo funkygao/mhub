@@ -13,7 +13,7 @@ import (
 type incomingConn struct {
 	server *Server
 
-	flag proto.Connect
+	flag *proto.Connect // nil if not CONNECT ok
 
 	alive         bool
 	conn          net.Conn
@@ -23,6 +23,11 @@ type incomingConn struct {
 }
 
 func (this *incomingConn) String() string {
+	if this.flag == nil {
+		// CONNECT not sent yet
+		return this.conn.RemoteAddr().String()
+	}
+
 	return this.flag.ClientId + "@" + this.conn.RemoteAddr().String()
 }
 
@@ -47,7 +52,7 @@ func (this *incomingConn) heartbeat(keepAliveTimer time.Duration) {
 				this.submitSync(&proto.Disconnect{}).wait()
 				log.Warn("%s over idle %ds, kicked out", this, overIdle)
 
-				if this.flag.WillFlag {
+				if this.flag != nil && this.flag.WillFlag {
 					// TODO broker will publish a message on behalf of the client
 				}
 
@@ -149,7 +154,7 @@ func (this *incomingConn) inboundLoop() {
 			if len(m.ClientId) < 1 || len(m.ClientId) > maxClientIdLength {
 				rc = proto.RetCodeIdentifierRejected
 			}
-			this.flag = *m // connection flag
+			this.flag = m // connection flag
 
 			// authentication
 			if !this.server.cf.Broker.AllowAnonymousConnect &&
@@ -202,6 +207,8 @@ func (this *incomingConn) inboundLoop() {
 				this, m.CleanSession, m.KeepAliveTimer)
 
 		case *proto.Publish:
+			this.validateMessage(m)
+
 			// TODO assert m.TopicName is not wildcard
 
 			// replicate message to all subscribers of this topic
@@ -220,6 +227,8 @@ func (this *incomingConn) inboundLoop() {
 			}
 
 		case *proto.Subscribe:
+			this.validateMessage(m)
+
 			suback := &proto.SubAck{
 				MessageId: m.MessageId,
 				TopicsQos: make([]proto.QosLevel, len(m.Topics)),
@@ -238,6 +247,8 @@ func (this *incomingConn) inboundLoop() {
 			}
 
 		case *proto.Unsubscribe:
+			this.validateMessage(m)
+
 			for _, t := range m.Topics {
 				this.server.subs.unsub(t, this)
 			}
@@ -245,6 +256,8 @@ func (this *incomingConn) inboundLoop() {
 			this.submit(&proto.UnsubAck{MessageId: m.MessageId})
 
 		case *proto.PingReq:
+			this.validateMessage(m)
+
 			this.submit(&proto.PingResp{})
 
 		case *proto.Disconnect:
@@ -312,4 +325,8 @@ func (this *incomingConn) outboundLoop() {
 func (this *incomingConn) authenticate(username, passwd string) (ok bool) {
 	ok = true
 	return
+}
+
+func (this *incomingConn) validateMessage(m proto.Message) {
+	// must CONNECT before other methods
 }
