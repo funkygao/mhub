@@ -6,6 +6,7 @@ import (
 )
 
 type PeersConfig struct {
+	SelfId     uint16
 	ListenAddr string
 	TcpNoDelay bool
 	Keepalive  bool
@@ -15,6 +16,7 @@ type PeersConfig struct {
 }
 
 func (this *PeersConfig) loadConfig(cf *conf.Conf) {
+	this.SelfId = uint16(cf.Int("self_id", 1))
 	this.ListenAddr = cf.String("listen_addr", ":9090")
 	this.Keepalive = cf.Bool("keepalive", true)
 	this.TcpNoDelay = cf.Bool("tcp_nodelay", true)
