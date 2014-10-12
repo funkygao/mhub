@@ -5,6 +5,7 @@ import (
 	log "github.com/funkygao/log4go"
 	"github.com/funkygao/mhub/config"
 	"net"
+	"time"
 )
 
 // MQTT broker
@@ -67,6 +68,7 @@ func (this *Server) Start() {
 				conn:          conn,
 				jobs:          make(chan job, this.cf.Broker.ClientOutboundQueueLen),
 				heartbeatStop: make(chan struct{}),
+				lastOpTime:    time.Now().Unix(),
 			}
 			go client.inboundLoop()
 			go client.outboundLoop()
