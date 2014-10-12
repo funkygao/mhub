@@ -13,6 +13,7 @@ type BrokerConfig struct {
 
 	StatsInterval          time.Duration
 	MaxConnections         int // max concurrent client conns
+	IOTimeout              time.Duration
 	Echo                   bool
 	StatsHttpListenAddr    string
 	ProfHttpListenAddr     string
@@ -37,6 +38,7 @@ func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
 	this.SubscriptionsQueueLen = cf.Int("subscriptions_queue_len", 500)
 	this.AllowAnonymousConnect = cf.Bool("allow_anonymous", false)
 	this.MaxConnections = cf.Int("max_connections", 50000)
+	this.IOTimeout = cf.Duration("io_timeout", time.Second*5)
 	this.ClientOutboundQueueLen = cf.Int("client_outbound_queue_len", 100)
 
 	// validation

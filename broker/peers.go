@@ -7,6 +7,7 @@ import (
 	proto "github.com/funkygao/mqttmsg"
 	"net"
 	"sync"
+	"time"
 )
 
 type peers struct {
@@ -71,7 +72,7 @@ func (this *peers) discover() {
 func (this *peers) recvReplication(conn net.Conn) {
 	defer func() {
 		conn.Close()
-
+		log.Warn("peer self die")
 		this.server.stats.peerDisconnect()
 	}()
 
@@ -154,6 +155,8 @@ func (this *peer) start() {
 	log.Info("peer[%+v] connected", this.host)
 
 	for job := range this.jobs {
+		this.conn.SetWriteDeadline(time.Now().Add(this.cf.IoTimeout))
+
 		err = job.m.Encode(this.conn) // replicated to peer
 		if err != nil {
 			log.Error(err)

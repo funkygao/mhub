@@ -119,7 +119,6 @@ func (this *incomingConn) inboundLoop() {
 	}()
 
 	for {
-		// TODO: timeout
 		m, err := proto.DecodeOneMessage(this.conn, nil)
 		if err != nil {
 			if err != io.EOF {
@@ -290,6 +289,8 @@ func (this *incomingConn) outboundLoop() {
 	}()
 
 	for {
+		this.conn.SetWriteDeadline(time.Now().Add(this.server.cf.Broker.IOTimeout))
+
 		select {
 		case job, on := <-this.jobs:
 			if !on {
@@ -322,11 +323,13 @@ func (this *incomingConn) outboundLoop() {
 
 }
 
+// TODO
 func (this *incomingConn) authenticate(username, passwd string) (ok bool) {
 	ok = true
 	return
 }
 
+// TODO
 func (this *incomingConn) validateMessage(m proto.Message) {
 	// must CONNECT before other methods
 }

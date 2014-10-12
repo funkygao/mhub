@@ -77,10 +77,8 @@ Thanks to https://github.com/jeffallen/mqtt
   - are handled on a per client and per direction basis
 
 ### TODO
+*   why job chan got full under loadtest
 *   cluster of brokers, scales with the number of MQTT clients
-*   ForceDisconnect after heartbeat idle too long
-*   security
-*   connect/io timeout of client/peers
 *   more edge cases testing
 *   retain, last will, clean session
     - retain is 'last known good value'
