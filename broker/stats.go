@@ -69,6 +69,9 @@ func (this *stats) start() {
 		userCpuUtil  float64
 		sysCpuUtil   float64
 		startedAt    = time.Now()
+		totalPackets int64
+		lastPackets  int64
+		throughput   int64
 	)
 	for _ = range ticker.C {
 		runtime.ReadMemStats(ms)
@@ -83,8 +86,13 @@ func (this *stats) start() {
 		lastUserTime = userTime
 		lastSysTime = sysTime
 
-		log.Info("%s, ver:%s, since:%s, go:%d, mem:%s, cpu:{%3.2f%%us, %3.2f%%sy}",
+		totalPackets = atomic.LoadInt64(&this.recv) + atomic.LoadInt64(&this.sent)
+		throughput = (totalPackets - lastPackets) / int64(this.interval.Seconds())
+		lastPackets = totalPackets
+
+		log.Info("%s, %dp/s, ver:%s, since:%s, go:%d, mem:%s, cpu:{%3.2f%%us, %3.2f%%sy}",
 			this,
+			throughput,
 			server.BuildID,
 			time.Since(startedAt),
 			runtime.NumGoroutine(),
