@@ -1,25 +1,23 @@
 package broker
 
 import (
-	"errors"
 	log "github.com/funkygao/log4go"
-	"github.com/funkygao/mhub/config"
 	proto "github.com/funkygao/mqttmsg"
 	"net"
 	"sync"
-	"time"
 )
 
 type peers struct {
-	nodes  map[string]*peer // key is hostname
-	mu     sync.Mutex
 	server *Server
+
+	nodes map[string]*endpoint // key is hostname or ip
+	mu    sync.Mutex
 }
 
 func newPeers(server *Server) (this *peers) {
 	this = new(peers)
 	this.server = server
-	this.nodes = make(map[string]*peer)
+	this.nodes = make(map[string]*endpoint)
 	return
 }
 
@@ -31,9 +29,9 @@ func (this *peers) start(listenAddr string) error {
 	// add self to peers for testing, TODO kill this
 	// FIXME if true, will lead to send on closed channel err
 	if true {
-		node := "localhost:9090"
-		this.nodes[node] = newPeer(node, this.server.cf.Peers)
-		go this.nodes[node].start()
+		host := "localhost:9090"
+		this.nodes[host] = newEndpoint(host, this.server.cf.Peers)
+		go this.nodes[host].start()
 	}
 
 	listener, err := net.Listen("tcp", listenAddr)
@@ -103,10 +101,10 @@ func (this *peers) join(host string) error {
 	defer this.mu.Unlock()
 
 	if _, present := this.nodes[host]; present {
-		return errors.New("peer already exists")
+		return errEndpointDupJoin
 	}
 
-	this.nodes[host] = newPeer(host, this.server.cf.Peers)
+	this.nodes[host] = newEndpoint(host, this.server.cf.Peers)
 	return nil
 }
 
@@ -118,56 +116,4 @@ func (this *peers) submit(m proto.Message) {
 	for _, p := range this.nodes {
 		p.submit(m)
 	}
-}
-
-type peer struct {
-	cf   config.PeersConfig
-	host string   // host of other node, not myself
-	conn net.Conn // outbound conn to other node
-	jobs chan job
-}
-
-func newPeer(host string, cf config.PeersConfig) (this *peer) {
-	return &peer{
-		cf:   cf,
-		host: host,
-		jobs: make(chan job, cf.QueueLen),
-	}
-}
-
-func (this *peer) start() {
-	defer func() {
-		this.conn.Close()
-		close(this.jobs)
-	}()
-
-	var err error
-	this.conn, err = net.Dial("tcp", this.host)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	tcpConn, _ := this.conn.(*net.TCPConn)
-	tcpConn.SetNoDelay(this.cf.TcpNoDelay)
-	tcpConn.SetKeepAlive(this.cf.Keepalive)
-
-	log.Info("peer[%+v] connected", this.host)
-
-	for job := range this.jobs {
-		this.conn.SetWriteDeadline(time.Now().Add(this.cf.IoTimeout))
-
-		err = job.m.Encode(this.conn) // replicated to peer
-		if err != nil {
-			log.Error(err)
-			return
-		}
-	}
-
-}
-
-func (this *peer) submit(m proto.Message) {
-	// TODO send on closed channel
-	// the principle is: senders close; receivers check for closed
-	this.jobs <- job{m: m}
 }
