@@ -88,14 +88,14 @@ func (this *incomingConn) del() {
 
 func (this *incomingConn) submit(m proto.Message) {
 	if !this.alive {
-		log.Warn("%s submit on dead client", this)
+		log.Warn("%s submit on dead client: %T %+v", this, m, m)
 		return
 	}
 
 	select {
 	case this.jobs <- job{m: m}:
 	default:
-		log.Error("%s: jobs full %d, lost %+v", this, len(this.jobs), m)
+		log.Error("%s: jobs full %d, lost %T %+v", this, len(this.jobs), m, m)
 	}
 }
 

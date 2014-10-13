@@ -9,23 +9,26 @@ import (
 )
 
 type endpoint struct {
-	cf   config.PeersConfig
-	host string   // host of other node, not myself
-	conn net.Conn // outbound conn to other node
-	jobs chan job
+	cf    config.PeersConfig
+	host  string   // host of other node, not myself
+	conn  net.Conn // outbound conn to other node
+	jobs  chan job
+	alive bool
 }
 
 func newEndpoint(host string, cf config.PeersConfig) (this *endpoint) {
 	return &endpoint{
-		cf:   cf,
-		host: host,
-		jobs: make(chan job, cf.QueueLen),
+		cf:    cf,
+		host:  host,
+		jobs:  make(chan job, cf.QueueLen),
+		alive: true,
 	}
 }
 
 func (this *endpoint) start() {
 	defer func() {
 		this.conn.Close()
+		this.alive = false
 		close(this.jobs)
 	}()
 
@@ -56,7 +59,15 @@ func (this *endpoint) start() {
 }
 
 func (this *endpoint) submit(m proto.Message) {
-	// TODO send on closed channel
-	// the principle is: senders close; receivers check for closed
-	this.jobs <- job{m: m}
+	if !this.alive {
+		log.Warn("peer[%s] already died, %T %+v", this.host, m, m)
+		return
+	}
+
+	select {
+	case this.jobs <- job{m: m}:
+	default:
+		log.Error("peer[%s]: jobs full %d, lost %T %+v", this.host, len(this.jobs), m, m)
+	}
+
 }
