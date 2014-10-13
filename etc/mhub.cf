@@ -16,7 +16,7 @@
         // subscriptions_workers=NumCpu
         subscriptions_workers: 4
         subscriptions_queue_len: 500
-        buffer_overflow_strategy: discard
+        buffer_overflow_strategy: "discard"
 
         allow_anonymous: true
         // The maximum number of QoS 1 or 2 messages to hold in the queue above those messages that are currently in flight
@@ -31,7 +31,7 @@
         io_timeout: "2s"
         echo: false
         queue_len: 1000
-        buffer_overflow_strategy: discard
+        buffer_overflow_strategy: "discard"
     }
 
     redis: {

@@ -106,7 +106,7 @@ func (this *incomingConn) submit(m proto.Message) {
 	select {
 	case this.jobs <- job{m: m}:
 	default:
-		log.Warn("%s: jobs full %d, lost %T %+v", this, len(this.jobs), m, m)
+		log.Warn("client[%s]: jobs full %d, lost %T %+v", this, len(this.jobs), m, m)
 	}
 }
 
