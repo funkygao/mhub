@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"sync/atomic"
 	"testing"
 )
 
@@ -20,4 +21,11 @@ func BenchmarkIsWild(b *testing.B) {
 		isWildcard(topic)
 	}
 	b.SetBytes(int64(len(topic)))
+}
+
+func BenchmarkAtomicAdd(b *testing.B) {
+	var a int32
+	for i := 0; i < b.N; i++ {
+		atomic.AddInt32(&a, 10)
+	}
 }

@@ -91,7 +91,11 @@ func BenchmarkRawRedisDial(b *testing.B) {
 
 	var server string = ":6379"
 	for i := 0; i < b.N; i++ {
-		conn, _ := redis.Dial("tcp", server)
+		conn, err := redis.Dial("tcp", server)
+		if err != nil {
+			b.Logf("%v", err)
+			continue
+		}
 		conn.Close()
 	}
 }
