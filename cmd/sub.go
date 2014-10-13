@@ -26,7 +26,7 @@ func main() {
 
 	conn, err := net.Dial("tcp", *host)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "dial: ", err)
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	cc := mqtt.NewClientConn(conn)
