@@ -68,6 +68,7 @@ func (this *stats) start() {
 		sysTime      int64
 		userCpuUtil  float64
 		sysCpuUtil   float64
+		startedAt    = time.Now()
 	)
 	for _ = range ticker.C {
 		runtime.ReadMemStats(ms)
@@ -82,9 +83,10 @@ func (this *stats) start() {
 		lastUserTime = userTime
 		lastSysTime = sysTime
 
-		log.Info("%s, ver:%s, goroutine:%d, mem:%s, cpu:{%3.2f%%us, %3.2f%%sy}",
+		log.Info("%s, ver:%s, since:%s, go:%d, mem:%s, cpu:{%3.2f%%us, %3.2f%%sy}",
 			this,
 			server.BuildID,
+			time.Since(startedAt),
 			runtime.NumGoroutine(),
 			gofmt.ByteSize(ms.Alloc),
 			userCpuUtil,
