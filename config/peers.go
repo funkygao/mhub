@@ -6,13 +6,14 @@ import (
 )
 
 type PeersConfig struct {
-	SelfId     uint16
-	ListenAddr string
-	TcpNoDelay bool
-	Keepalive  bool
-	IoTimeout  time.Duration
-	Echo       bool
-	QueueLen   int
+	SelfId               uint16
+	ListenAddr           string
+	TcpNoDelay           bool
+	Keepalive            bool
+	IoTimeout            time.Duration
+	Echo                 bool
+	QueueLen             int
+	BuffOverflowStrategy string
 }
 
 func (this *PeersConfig) loadConfig(cf *conf.Conf) {
@@ -23,4 +24,5 @@ func (this *PeersConfig) loadConfig(cf *conf.Conf) {
 	this.IoTimeout = cf.Duration("io_timeout", time.Second*10)
 	this.Echo = cf.Bool("echo", false)
 	this.QueueLen = cf.Int("queue_len", 1000) // FIXME
+	this.BuffOverflowStrategy = cf.String("buffer_overflow_strategy", BufferOverflowBlock)
 }

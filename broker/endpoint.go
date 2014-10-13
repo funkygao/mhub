@@ -60,14 +60,20 @@ func (this *endpoint) start() {
 
 func (this *endpoint) submit(m proto.Message) {
 	if !this.alive {
-		log.Warn("peer[%s] already died, %T %+v", this.host, m, m)
+		log.Error("peer[%s] already died, %T %+v", this.host, m, m)
 		return
 	}
 
+	if this.cf.BuffOverflowStrategy == config.BufferOverflowBlock {
+		this.jobs <- job{m: m}
+		return
+	}
+
+	// config.BufferOverflowDiscard
 	select {
 	case this.jobs <- job{m: m}:
 	default:
-		log.Error("peer[%s]: jobs full %d, lost %T %+v", this.host, len(this.jobs), m, m)
+		log.Warn("peer[%s]: jobs full %d, lost %T %+v", this.host, len(this.jobs), m, m)
 	}
 
 }

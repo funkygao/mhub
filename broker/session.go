@@ -2,6 +2,7 @@ package broker
 
 import (
 	log "github.com/funkygao/log4go"
+	"github.com/funkygao/mhub/config"
 	proto "github.com/funkygao/mqttmsg"
 	"io"
 	"net"
@@ -92,14 +93,20 @@ func (this *incomingConn) del() {
 
 func (this *incomingConn) submit(m proto.Message) {
 	if !this.alive {
-		log.Warn("%s submit on dead client: %T %+v", this, m, m)
+		log.Error("%s submit on dead client: %T %+v", this, m, m)
 		return
 	}
 
+	if this.server.cf.Broker.BuffOverflowStrategy == config.BufferOverflowBlock {
+		this.jobs <- job{m: m}
+		return
+	}
+
+	// config.BufferOverflowDiscard
 	select {
 	case this.jobs <- job{m: m}:
 	default:
-		log.Error("%s: jobs full %d, lost %T %+v", this, len(this.jobs), m, m)
+		log.Warn("%s: jobs full %d, lost %T %+v", this, len(this.jobs), m, m)
 	}
 }
 
