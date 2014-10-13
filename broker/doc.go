@@ -1,4 +1,4 @@
-// Package mqtt implements MQTT clients and servers.
+// Package broker implements MQTT client and server/broker.
 /*
                                              +- worker1 -+
                   Server -- subscriptions ---|- worker2 -|-- chan post
@@ -13,7 +13,13 @@
                 +-------------------+
                 |                   |
                 |     chan job      |
-              reader ----------- writer
+             inbound ----------- outbound
+                ^                   V
+                |                   |
+                +-------------------+
+                        |
+                      client
+
 
       
 */

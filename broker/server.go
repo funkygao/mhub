@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// MQTT broker
 type Server struct {
 	cf *config.Config
 

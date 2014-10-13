@@ -38,7 +38,6 @@ type ClientConn struct {
 	suback  chan *proto.SubAck
 }
 
-// NewClientConn allocates a new ClientConn.
 func NewClientConn(c net.Conn) *ClientConn {
 	cc := &ClientConn{
 		conn:     c,
@@ -168,6 +167,10 @@ func (c *ClientConn) Subscribe(tqs []proto.TopicQos) *proto.SubAck {
 	})
 	ack := <-c.suback
 	return ack
+}
+
+func (c *ClientConn) Unsubscribe(m *proto.Unsubscribe) {
+	c.out <- job{m: m}
 }
 
 // Publish publishes the given message to the MQTT server.
