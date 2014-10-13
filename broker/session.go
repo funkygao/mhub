@@ -66,6 +66,10 @@ func (this *incomingConn) heartbeat(keepAliveTimer time.Duration) {
 
 }
 
+func (this *incomingConn) connected() bool {
+	return this.flag != nil
+}
+
 func (this *incomingConn) add() *incomingConn {
 	clientsMu.Lock()
 	defer clientsMu.Unlock()
