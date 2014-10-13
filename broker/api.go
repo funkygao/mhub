@@ -68,6 +68,7 @@ func (c *ClientConn) inboundLoop() {
 				return
 			}
 
+			// e,g. connection reset by peer
 			log.Println(err)
 			return
 		}
