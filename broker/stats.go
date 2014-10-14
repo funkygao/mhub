@@ -19,6 +19,7 @@ type stats struct {
 	profListenAddr  string
 
 	topics   int64 // TODO
+	repl     int64
 	recv     int64
 	sent     int64
 	sessions int64 // cumulated
@@ -26,6 +27,7 @@ type stats struct {
 	peers    int64
 }
 
+func (this *stats) replicated()  { atomic.AddInt64(&this.repl, 1) }
 func (this *stats) messageRecv() { atomic.AddInt64(&this.recv, 1) }
 func (this *stats) messageSend() { atomic.AddInt64(&this.sent, 1) }
 func (this *stats) clientConnect() {
@@ -37,8 +39,8 @@ func (this *stats) peerConnect()      { atomic.AddInt64(&this.peers, 1) }
 func (this *stats) peerDisconnect()   { atomic.AddInt64(&this.peers, -1) }
 
 func (this *stats) String() string {
-	return fmt.Sprintf("{topic:%d, recv:%d, sent:%d, sess:%d, client:%d, peer:%d}",
-		atomic.LoadInt64(&this.topics),
+	return fmt.Sprintf("{repl:%d, recv:%d, sent:%d, sess:%d, client:%d, peer:%d}",
+		atomic.LoadInt64(&this.repl),
 		atomic.LoadInt64(&this.recv),
 		atomic.LoadInt64(&this.sent),
 		atomic.LoadInt64(&this.sessions),

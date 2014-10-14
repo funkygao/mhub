@@ -9,6 +9,8 @@ import (
 )
 
 type endpoint struct {
+	stats *stats
+
 	cf    config.PeersConfig
 	host  string   // host of other node, not myself
 	conn  net.Conn // outbound conn to other node
@@ -16,8 +18,9 @@ type endpoint struct {
 	alive bool
 }
 
-func newEndpoint(host string, cf config.PeersConfig) (this *endpoint) {
+func newEndpoint(host string, cf config.PeersConfig, s *stats) (this *endpoint) {
 	return &endpoint{
+		stats: s,
 		cf:    cf,
 		host:  host,
 		jobs:  make(chan job, cf.QueueLen),
@@ -54,6 +57,8 @@ func (this *endpoint) start() {
 			log.Error(err)
 			return
 		}
+
+		this.stats.replicated()
 	}
 
 }

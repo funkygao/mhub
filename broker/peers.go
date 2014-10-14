@@ -30,7 +30,7 @@ func (this *peers) start(listenAddr string) error {
 	// FIXME if true, will lead to send on closed channel err
 	if true {
 		host := "localhost:9090"
-		this.nodes[host] = newEndpoint(host, this.server.cf.Peers)
+		this.nodes[host] = newEndpoint(host, this.server.cf.Peers, this.server.stats)
 		go this.nodes[host].start()
 	}
 
@@ -104,7 +104,7 @@ func (this *peers) join(host string) error {
 		return errEndpointDupJoin
 	}
 
-	this.nodes[host] = newEndpoint(host, this.server.cf.Peers)
+	this.nodes[host] = newEndpoint(host, this.server.cf.Peers, this.server.stats)
 	return nil
 }
 
