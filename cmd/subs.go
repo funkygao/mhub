@@ -54,6 +54,7 @@ func subscribe(topic string, no int) {
 	}
 	cc := mqtt.NewClientConn(conn)
 	cc.Dump = *dump
+	cc.KeepAlive = 5
 	cc.ClientId = *id
 
 	if err := cc.Connect(*user, *pass); err != nil {

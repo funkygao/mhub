@@ -31,6 +31,7 @@ func main() {
 	}
 	cc := mqtt.NewClientConn(conn)
 	cc.Dump = *dump
+	cc.KeepAlive = 5
 	cc.ClientId = *id
 
 	tq := make([]proto.TopicQos, flag.NArg())
