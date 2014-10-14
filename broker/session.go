@@ -53,6 +53,8 @@ func (this *incomingConn) heartbeat(keepAliveTimer time.Duration) {
 				this.submitSync(&proto.Disconnect{}).wait()
 				log.Warn("%s over idle %ds, kicked out", this, overIdle)
 
+				this.server.stats.aborted()
+
 				if this.flag != nil && this.flag.WillFlag {
 					// TODO broker will publish a message on behalf of the client
 				}
@@ -141,6 +143,7 @@ func (this *incomingConn) inboundLoop() {
 		}
 
 		this.server.stats.messageRecv()
+		this.server.stats.addIn(m)
 		this.refreshOpTime()
 
 		if this.server.cf.Broker.Echo {
@@ -325,6 +328,7 @@ func (this *incomingConn) outboundLoop() {
 			}
 
 			this.server.stats.messageSend()
+			this.server.stats.addOut(job.m)
 
 			if _, ok := job.m.(*proto.Disconnect); ok {
 				return

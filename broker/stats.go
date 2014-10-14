@@ -5,6 +5,7 @@ import (
 	"github.com/funkygao/golib/gofmt"
 	"github.com/funkygao/golib/server"
 	log "github.com/funkygao/log4go"
+	proto "github.com/funkygao/mqttmsg"
 	"github.com/gorilla/mux"
 	"net/http"
 	"runtime"
@@ -18,18 +19,26 @@ type stats struct {
 	statsListenAddr string
 	profListenAddr  string
 
-	topics   int64 // TODO
-	repl     int64
-	recv     int64
-	sent     int64
-	sessions int64 // cumulated
-	clients  int64
-	peers    int64
+	topics    int64 // TODO
+	replBytes int64
+	inBytes   int64
+	outBytes  int64
+	repl      int64
+	recv      int64
+	sent      int64
+	sessions  int64 // cumulated
+	aborts    int64 // cumulated aborted client sessions
+	clients   int64
+	peers     int64
 }
 
-func (this *stats) replicated()  { atomic.AddInt64(&this.repl, 1) }
-func (this *stats) messageRecv() { atomic.AddInt64(&this.recv, 1) }
-func (this *stats) messageSend() { atomic.AddInt64(&this.sent, 1) }
+func (this *stats) addIn(m proto.Message)   { atomic.AddInt64(&this.inBytes, int64(m.Bytes())) }
+func (this *stats) addOut(m proto.Message)  { atomic.AddInt64(&this.outBytes, int64(m.Bytes())) }
+func (this *stats) addRepl(m proto.Message) { atomic.AddInt64(&this.replBytes, int64(m.Bytes())) }
+func (this *stats) aborted()                { atomic.AddInt64(&this.aborts, 1) }
+func (this *stats) replicated()             { atomic.AddInt64(&this.repl, 1) }
+func (this *stats) messageRecv()            { atomic.AddInt64(&this.recv, 1) }
+func (this *stats) messageSend()            { atomic.AddInt64(&this.sent, 1) }
 func (this *stats) clientConnect() {
 	atomic.AddInt64(&this.clients, 1)
 	atomic.AddInt64(&this.sessions, 1)
@@ -39,13 +48,14 @@ func (this *stats) peerConnect()      { atomic.AddInt64(&this.peers, 1) }
 func (this *stats) peerDisconnect()   { atomic.AddInt64(&this.peers, -1) }
 
 func (this *stats) String() string {
-	return fmt.Sprintf("{recv:%d, repl:%d/%d, sent:%d/%d, sess:%d}",
+	return fmt.Sprintf("{recv:%d, repl:%d/%d, sent:%d/%d, sess:%d, abort:%d}",
 		atomic.LoadInt64(&this.recv),
 		atomic.LoadInt64(&this.repl),
 		atomic.LoadInt64(&this.peers),
 		atomic.LoadInt64(&this.sent),
 		atomic.LoadInt64(&this.clients),
-		atomic.LoadInt64(&this.sessions))
+		atomic.LoadInt64(&this.sessions),
+		atomic.LoadInt64(&this.aborts))
 }
 
 // current simultaneous client conns
@@ -101,6 +111,8 @@ func (this *stats) start() {
 			gofmt.ByteSize(ms.Alloc),
 			userCpuUtil,
 			sysCpuUtil)
+		log.Info("in:%s, out:%s, repl:%s", gofmt.ByteSize(this.inBytes),
+			gofmt.ByteSize(this.outBytes), gofmt.ByteSize(this.replBytes))
 	}
 }
 

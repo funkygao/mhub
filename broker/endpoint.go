@@ -59,6 +59,7 @@ func (this *endpoint) start() {
 		}
 
 		this.stats.replicated()
+		this.stats.addRepl(job.m)
 	}
 
 }
