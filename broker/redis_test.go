@@ -86,7 +86,7 @@ func BenchmarkRedisPoolGetConn(b *testing.B) {
 	}
 }
 
-func BenchmarkRawRedisDial(b *testing.B) {
+func Benchma1rkRawRedisDial(b *testing.B) {
 	b.ReportAllocs()
 
 	var server string = ":6379"

@@ -32,8 +32,6 @@ func BenchmarkAtomicAdd(b *testing.B) {
 }
 
 func BenchmarkSubscribers(b *testing.B) {
-	b.ReportAllocs()
-
 	cs := make([]*incomingConn, 0)
 	for i := 0; i < 10000; i++ {
 		c := &incomingConn{
@@ -56,6 +54,8 @@ func BenchmarkSubscribers(b *testing.B) {
 	for _, c = range cs {
 		subs.add("#", c)
 	}
+
+	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		subs.subscribers("ha")
 	}
