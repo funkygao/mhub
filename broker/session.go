@@ -303,7 +303,6 @@ func (this *incomingConn) outboundLoop() {
 	}()
 
 	for {
-		this.conn.SetWriteDeadline(time.Now().Add(this.server.cf.Broker.IOTimeout))
 
 		select {
 		case job, on := <-this.jobs:
@@ -316,7 +315,7 @@ func (this *incomingConn) outboundLoop() {
 				log.Debug("%s <- %T %+v", this, job.m, job.m)
 			}
 
-			// TODO: write timeout
+			this.conn.SetWriteDeadline(time.Now().Add(this.server.cf.Broker.IOTimeout))
 			err := job.m.Encode(this.conn)
 			if job.r != nil {
 				// notifiy the sender that this message is sent

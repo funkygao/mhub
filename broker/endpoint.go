@@ -51,7 +51,6 @@ func (this *endpoint) start() {
 	// consume jobs and send to subscription clients
 	for job := range this.jobs {
 		this.conn.SetWriteDeadline(time.Now().Add(this.cf.IoTimeout))
-
 		err = job.m.Encode(this.conn) // replicated to peer
 		if err != nil {
 			log.Error(err)
