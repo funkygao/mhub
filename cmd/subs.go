@@ -3,8 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net"
 	"os"
+	"sync/atomic"
+	"time"
 
 	mqtt "github.com/funkygao/mhub/broker"
 	proto "github.com/funkygao/mqttmsg"
@@ -16,6 +19,8 @@ var user = flag.String("user", "", "username")
 var pass = flag.String("pass", "", "password")
 var dump = flag.Bool("dump", false, "dump messages?")
 var conns = flag.Int("conns", 200, "how many conns")
+
+var recv int64
 
 func main() {
 	flag.Parse()
@@ -29,6 +34,14 @@ func main() {
 			go subscribe(flag.Arg(i), j)
 		}
 	}
+
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for _ = range ticker.C {
+			log.Printf("recv %d", atomic.LoadInt64(&recv))
+		}
+	}()
 
 	<-make(chan bool)
 }
@@ -55,6 +68,8 @@ func subscribe(topic string, no int) {
 	cc.Subscribe(tq)
 
 	for m := range cc.Incoming {
+		atomic.AddInt64(&recv, 1)
+
 		if *dump {
 			fmt.Print(m.TopicName, "\t")
 			m.Payload.WritePayload(os.Stdout)
