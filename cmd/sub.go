@@ -19,6 +19,8 @@ var dump = flag.Bool("dump", false, "dump messages?")
 func main() {
 	flag.Parse()
 
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	if flag.NArg() < 1 {
 		fmt.Fprintln(os.Stderr, "usage: sub topic [topic topic...]")
 		return

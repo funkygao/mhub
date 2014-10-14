@@ -25,6 +25,8 @@ var recv int64
 func main() {
 	flag.Parse()
 
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	if flag.NArg() < 1 {
 		fmt.Fprintln(os.Stderr, "usage: sub topic [topic topic...]")
 		return

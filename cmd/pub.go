@@ -20,6 +20,8 @@ var wait = flag.Bool("wait", false, "stay connected after publishing?")
 func main() {
 	flag.Parse()
 
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	if flag.NArg() != 2 {
 		fmt.Fprintln(os.Stderr, "usage: pub topic message")
 		return
