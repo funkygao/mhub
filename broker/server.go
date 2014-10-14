@@ -11,9 +11,10 @@ import (
 type Server struct {
 	cf *config.Config
 
-	stats *stats
-	subs  *subscriptions
-	peers *peers
+	stats   *stats
+	subs    *subscriptions
+	peers   *peers
+	flights *flights
 
 	redis *redisClient // topic|subscription|message persistence
 
@@ -33,6 +34,7 @@ func NewServer(cf *config.Config) (this *Server) {
 		redis: newRedisClient(cf.Redis),
 	}
 	this.peers = newPeers(this)
+	this.flights = newFlights()
 
 	go stats.start()
 
