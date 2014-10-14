@@ -330,6 +330,7 @@ func (this *incomingConn) outboundLoop() {
 
 			this.server.stats.messageSend()
 			this.server.stats.addOut(job.m)
+			this.refreshOpTime()
 
 			if _, ok := job.m.(*proto.Disconnect); ok {
 				return
