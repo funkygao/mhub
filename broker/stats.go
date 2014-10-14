@@ -110,9 +110,9 @@ func (this *stats) start() {
 			userCpuUtil,
 			sysCpuUtil)
 
-		log.Info("%s, %d/s, {in:%s, out:%s, repl:%s}",
-			this,
+		log.Info("%d/s, %s {in:%s, out:%s, repl:%s}",
 			throughput,
+			this,
 			gofmt.ByteSize(this.inBytes),
 			gofmt.ByteSize(this.outBytes),
 			gofmt.ByteSize(this.replBytes))
