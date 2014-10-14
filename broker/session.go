@@ -139,6 +139,8 @@ func (this *incomingConn) inboundLoop() {
 				log.Error("%v: %s", err, this)
 			}
 
+			this.server.stats.aborted()
+
 			return
 		}
 
