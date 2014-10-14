@@ -11,6 +11,7 @@ Thanks to https://github.com/jeffallen/mqtt
 * support for loss of contact between c/s(last will)
 * mobile battery friendly
 * max payload 256MB, just bytes array without format
+* topic can be 64KB long
 * QoS on a per-message basis
 * TLS & user/pass authentication/authorization
 * rich client API with all of 5 protocol methods
