@@ -341,6 +341,8 @@ func (this *incomingConn) publish(m *proto.Publish) {
 		this.submit(&proto.PubAck{MessageId: m.MessageId})
 	}
 
+	// retry-until-acknowledged
+
 	if m.Retain {
 
 	}

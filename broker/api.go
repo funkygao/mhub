@@ -39,6 +39,7 @@ type ClientConn struct {
 }
 
 func NewClientConn(c net.Conn) *ClientConn {
+	c.(*net.TCPConn).SetNoDelay(true)
 	cc := &ClientConn{
 		conn:     c,
 		out:      make(chan job, clientQueueLength),
