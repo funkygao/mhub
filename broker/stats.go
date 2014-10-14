@@ -39,13 +39,13 @@ func (this *stats) peerConnect()      { atomic.AddInt64(&this.peers, 1) }
 func (this *stats) peerDisconnect()   { atomic.AddInt64(&this.peers, -1) }
 
 func (this *stats) String() string {
-	return fmt.Sprintf("{repl:%d, recv:%d, sent:%d, sess:%d, client:%d, peer:%d}",
-		atomic.LoadInt64(&this.repl),
+	return fmt.Sprintf("{recv:%d, repl:%d/%d, sent:%d/%d, sess:%d}",
 		atomic.LoadInt64(&this.recv),
+		atomic.LoadInt64(&this.repl),
+		atomic.LoadInt64(&this.peers),
 		atomic.LoadInt64(&this.sent),
-		atomic.LoadInt64(&this.sessions),
 		atomic.LoadInt64(&this.clients),
-		atomic.LoadInt64(&this.peers))
+		atomic.LoadInt64(&this.sessions))
 }
 
 // current simultaneous client conns
@@ -92,7 +92,7 @@ func (this *stats) start() {
 		throughput = (totalPackets - lastPackets) / int64(this.interval.Seconds())
 		lastPackets = totalPackets
 
-		log.Info("%s, %dp/s, ver:%s, since:%s, go:%d, mem:%s, cpu:{%3.2f%%us, %3.2f%%sy}",
+		log.Info("%s, %d/s, ver:%s, since:%s, go:%d, mem:%s, cpu:{%3.2f%%us, %3.2f%%sy}",
 			this,
 			throughput,
 			server.BuildID,
