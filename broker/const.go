@@ -11,6 +11,10 @@ const (
 )
 
 const (
+	SLASH = "/"
+)
+
+const (
 	pendingPub = uint8(iota + 1) // occured when client is offline
 	pendingAck                   // occured before client sendback PubAck
 )

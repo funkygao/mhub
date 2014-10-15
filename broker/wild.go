@@ -10,7 +10,7 @@ type wild struct {
 }
 
 func newWild(topic string, c *incomingConn) wild {
-	return wild{wild: strings.Split(topic, "/"), c: c}
+	return wild{wild: strings.Split(topic, SLASH), c: c}
 }
 
 func isWildcard(topic string) bool {
