@@ -69,7 +69,7 @@ func client(i int) {
 	}
 	cc := mqtt.NewClientConn(conn)
 	cc.Dump = *dump
-	cc.KeepAlive = 15
+	cc.KeepAlive = 60
 
 	if err := cc.Connect(*user, *pass); err != nil {
 		log.Fatal("connect: %v\n", err)

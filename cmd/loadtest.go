@@ -111,7 +111,7 @@ func connect() *mqtt.ClientConn {
 	}
 	cc := mqtt.NewClientConn(conn)
 	cc.Dump = *dump
-	cc.KeepAlive = 5
+	cc.KeepAlive = 60
 	cc.ClientId = *id
 
 	err = cc.Connect(*user, *pass)
