@@ -17,7 +17,7 @@ func getRedisStore() *RedisStore {
 		MaxIdle:     5,
 		IdleTimeout: time.Second * 240,
 	}
-	return newRedisStore(cf)
+	return NewRedisStore(cf)
 }
 
 func TestBasicCRUD(t *testing.T) {

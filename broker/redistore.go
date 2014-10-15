@@ -14,7 +14,7 @@ type RedisStore struct {
 	mu   sync.Mutex // redis.Do is not goroutine safe
 }
 
-func newRedisStore(cf config.RedisConfig) *RedisStore {
+func NewRedisStore(cf config.RedisConfig) *RedisStore {
 	this := new(RedisStore)
 	this.pool = &redis.Pool{
 		MaxIdle:     cf.MaxIdle,
