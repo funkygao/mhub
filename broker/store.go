@@ -29,8 +29,8 @@ type Store interface {
 // A key MUST have the form "X.[messageid]"
 // where X is 'i' or 'o'
 func key2mid(key string) uint16 {
-	i, _ := strconv.Atoi(key[2:])
-	return uint16(i)
+	mid, _ := strconv.Atoi(key[2:])
+	return uint16(mid)
 }
 
 // Return a string of the form "i.[id]"
