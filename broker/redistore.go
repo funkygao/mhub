@@ -9,13 +9,13 @@ import (
 	"time"
 )
 
-type redisClient struct {
+type RedisStore struct {
 	pool *redis.Pool
 	mu   sync.Mutex // redis.Do is not goroutine safe
 }
 
-func newRedisClient(cf config.RedisConfig) *redisClient {
-	this := new(redisClient)
+func newRedisStore(cf config.RedisConfig) *RedisStore {
+	this := new(RedisStore)
 	this.pool = &redis.Pool{
 		MaxIdle:     cf.MaxIdle,
 		IdleTimeout: cf.IdleTimeout,
@@ -36,7 +36,7 @@ func newRedisClient(cf config.RedisConfig) *redisClient {
 	return this
 }
 
-func (this *redisClient) Store(key string, val interface{}) {
+func (this *RedisStore) Store(key string, val interface{}) {
 	this.mu.Lock()
 	m, err := msgpack.Marshal(val)
 	if err != nil {
@@ -49,7 +49,7 @@ func (this *redisClient) Store(key string, val interface{}) {
 	this.mu.Unlock()
 }
 
-func (this *redisClient) Get(key string, val interface{}) {
+func (this *RedisStore) Get(key string, val interface{}) {
 	this.mu.Lock()
 	m, err := redis.Bytes(this.pool.Get().Do("GET", key))
 	if err != nil {
@@ -62,13 +62,13 @@ func (this *redisClient) Get(key string, val interface{}) {
 	this.mu.Unlock()
 }
 
-func (this *redisClient) Del(key string) {
+func (this *RedisStore) Del(key string) {
 	this.mu.Lock()
 	this.pool.Get().Do("DEL", key)
 	this.mu.Unlock()
 }
 
-func (this *redisClient) Expire(key string, sec uint64) {
+func (this *RedisStore) Expire(key string, sec uint64) {
 	this.mu.Lock()
 	_, err := this.pool.Get().Do("EXPIRE", key, sec)
 	if err != nil {

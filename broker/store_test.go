@@ -11,17 +11,17 @@ import (
 	"time"
 )
 
-func getRedisClient() *redisClient {
+func getRedisStore() *RedisStore {
 	cf := config.RedisConfig{
 		Server:      "localhost:6379",
 		MaxIdle:     5,
 		IdleTimeout: time.Second * 240,
 	}
-	return newRedisClient(cf)
+	return newRedisStore(cf)
 }
 
 func TestBasicCRUD(t *testing.T) {
-	redis := getRedisClient()
+	redis := getRedisStore()
 	var val int
 	var key = "key"
 
@@ -35,7 +35,7 @@ func TestBasicCRUD(t *testing.T) {
 func BenchmarkStorePublishMessage(b *testing.B) {
 	b.ReportAllocs()
 
-	redis := getRedisClient()
+	redis := getRedisStore()
 	var p = proto.Publish{}
 	for i := 0; i < b.N; i++ {
 		redis.Store("foo", p)
