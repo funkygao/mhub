@@ -6,6 +6,7 @@ import (
 	proto "github.com/funkygao/mqttmsg"
 	"io"
 	"net"
+	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -137,7 +138,7 @@ func (this *incomingConn) inboundLoop() {
 	for {
 		m, err := proto.DecodeOneMessage(this.conn, nil)
 		if err != nil {
-			if err != io.EOF {
+			if err != io.EOF && !strings.HasSuffix(err.Error(), errTcpUseOfClosedNetwork) {
 				// e,g. connection reset by peer
 				log.Error("%v: %s", err, this)
 			}

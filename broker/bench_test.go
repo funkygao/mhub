@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,6 +13,16 @@ func BenchmarkChannelClose(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		c = make(chan bool)
 		close(c)
+	}
+}
+
+func BenchmarkStringContainsForError(b *testing.B) {
+	b.ReportAllocs()
+	s := "read tcp 106.49.97.242:4998: use of closed network connection"
+	substr := "use of closed network connection"
+	for i := 0; i < b.N; i++ {
+		//strings.Contains(s, substr)
+		strings.HasSuffix(s, substr) // this one is much faster
 	}
 }
 
