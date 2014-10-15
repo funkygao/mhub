@@ -20,6 +20,7 @@ type BrokerConfig struct {
 	ProfHttpListenAddr     string
 	AllowAnonymousConnect  bool
 	ClientOutboundQueueLen int
+	ClientSlowThreshold    time.Duration
 	SubscriptionsWorkers   int
 	SubscriptionsQueueLen  int
 }
@@ -41,6 +42,7 @@ func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
 	this.MaxConnections = cf.Int("max_connections", 50000)
 	this.IOTimeout = cf.Duration("io_timeout", time.Second*5)
 	this.ClientOutboundQueueLen = cf.Int("client_outbound_queue_len", 100)
+	this.ClientSlowThreshold = cf.Duration("client_slow_threshold", time.Millisecond*100)
 	this.BuffOverflowStrategy = cf.String("buffer_overflow_strategy", BufferOverflowBlock)
 
 	// validation

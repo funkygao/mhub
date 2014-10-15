@@ -89,7 +89,9 @@ func (this *incomingConn) add() *incomingConn {
 // Delete a connection; the conection must be closed by the caller first.
 func (this *incomingConn) del() {
 	clientsMu.Lock()
-	delete(clients, this.flag.ClientId)
+	if this.flag != nil {
+		delete(clients, this.flag.ClientId)
+	}
 	clientsMu.Unlock()
 }
 
@@ -207,6 +209,12 @@ func (this *incomingConn) outboundLoop() {
 		this.server.subs.unsubAll(this)
 	}()
 
+	var (
+		t1      time.Time
+		elapsed time.Duration
+		totalN  int64
+		slowN   int64
+	)
 	for {
 		select {
 		case job, on := <-this.jobs:
@@ -219,7 +227,8 @@ func (this *incomingConn) outboundLoop() {
 				log.Debug("%s <- %T %+v", this, job.m, job.m)
 			}
 
-			this.conn.SetWriteDeadline(time.Now().Add(this.server.cf.Broker.IOTimeout))
+			t1 = time.Now()
+			this.conn.SetWriteDeadline(t1.Add(this.server.cf.Broker.IOTimeout))
 			err := job.m.Encode(this.conn)
 			if job.r != nil {
 				// notifiy the sender that this message is sent
@@ -228,6 +237,13 @@ func (this *incomingConn) outboundLoop() {
 			if err != nil {
 				log.Error("%s %s", this, err)
 				return
+			}
+
+			totalN++
+			elapsed = time.Since(t1)
+			if elapsed.Nanoseconds() > this.server.cf.Broker.ClientSlowThreshold.Nanoseconds() {
+				slowN++
+				log.Warn("Slow client[%s] %d/%d, %s", this, slowN, totalN, elapsed)
 			}
 
 			this.server.stats.messageSend()
