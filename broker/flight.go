@@ -13,8 +13,7 @@ type flightMessage struct {
 }
 
 type flights struct {
-	mu    sync.Mutex
-	redis *redisClient
+	mu sync.Mutex
 }
 
 func newFlights() *flights {

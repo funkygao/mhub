@@ -16,8 +16,6 @@ type Server struct {
 	peers   *peers
 	flights *flights
 
-	redis *redisClient // topic|subscription|message persistence
-
 	Done chan struct{}
 }
 
@@ -30,8 +28,7 @@ func NewServer(cf *config.Config) (this *Server) {
 		stats: stats,
 		subs: newSubscriptions(cf.Broker.SubscriptionsWorkers,
 			cf.Broker.SubscriptionsQueueLen, stats),
-		Done:  make(chan struct{}),
-		redis: newRedisClient(cf.Redis),
+		Done: make(chan struct{}),
 	}
 	this.peers = newPeers(this)
 	this.flights = newFlights()
