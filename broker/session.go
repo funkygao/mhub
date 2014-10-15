@@ -139,7 +139,7 @@ func (this *incomingConn) inboundLoop() {
 		m, err := proto.DecodeOneMessage(this.conn, nil)
 		if err != nil {
 			if err != io.EOF && !strings.HasSuffix(err.Error(), errTcpUseOfClosedNetwork) {
-				// e,g. connection reset by peer
+				// e,g. read tcp 106.49.97.242:62547: connection reset by peer
 				log.Error("%v: %s", err, this)
 			}
 
@@ -238,6 +238,8 @@ func (this *incomingConn) outboundLoop() {
 				close(job.r)
 			}
 			if err != nil {
+				// e,g. write tcp 106.49.97.242:4341: broken pipe
+				// e,g. write tcp 106.49.97.242:61016: i/o timeout
 				log.Error("client[%s]: %s, %s", this, err, elapsed)
 				return
 			}
