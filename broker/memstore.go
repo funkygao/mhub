@@ -14,9 +14,6 @@ type MemoryStore struct {
 	opened   bool
 }
 
-// NewMemoryStore returns a pointer to a new instance of
-// MemoryStore, the instance is not initialized and ready to
-// use until Open() has been called on it.
 func NewMemoryStore() *MemoryStore {
 	this := &MemoryStore{
 		messages: make(map[string]proto.Message),
@@ -26,13 +23,15 @@ func NewMemoryStore() *MemoryStore {
 }
 
 func (this *MemoryStore) Open() {
+	this.Lock()
 	this.opened = true
+	this.Unlock()
 }
 
 func (this *MemoryStore) Put(key string, message proto.Message) {
 	this.Lock()
-	defer this.Unlock()
 	this.messages[key] = message
+	this.Unlock()
 }
 
 func (this *MemoryStore) Get(key string) proto.Message {
@@ -42,11 +41,10 @@ func (this *MemoryStore) Get(key string) proto.Message {
 	return this.messages[key]
 }
 
-// All returns a slice of strings containing all the keys currently
-// in the MemoryStore.
 func (this *MemoryStore) All() []string {
 	this.RLock()
 	defer this.RUnlock()
+
 	keys := []string{}
 	for k, _ := range this.messages {
 		keys = append(keys, k)
@@ -56,19 +54,18 @@ func (this *MemoryStore) All() []string {
 
 func (this *MemoryStore) Del(key string) {
 	this.Lock()
-	defer this.Unlock()
-
 	delete(this.messages, key)
+	this.Unlock()
 }
 
-// Close will disallow modifications to the state of the store.
 func (this *MemoryStore) Close() {
+	this.Lock()
 	this.opened = false
+	this.Unlock()
 }
 
-// Reset eliminates all persisted message data in the store.
 func (this *MemoryStore) Reset() {
 	this.Lock()
-	defer this.Unlock()
 	this.messages = make(map[string]proto.Message)
+	this.Unlock()
 }
