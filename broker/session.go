@@ -110,7 +110,7 @@ func (this *incomingConn) submit(m proto.Message) {
 	select {
 	case this.jobs <- job{m: m}:
 	default:
-		log.Warn("client[%s]: outbound(%d) full, discard %T", this,
+		log.Debug("client[%s]: outbound(%d) full, discard %T", this,
 			len(this.jobs), m)
 	}
 }
