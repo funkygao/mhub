@@ -156,7 +156,7 @@ func (this *incomingConn) inboundLoop() {
 
 		switch m := m.(type) {
 		case *proto.Connect: // TODO close conn if too long no Connect
-			rc := this.connect(m)
+			rc := this.doConnect(m)
 
 			// close connection if it was a bad connect
 			if rc != proto.RetCodeAccepted {
@@ -169,13 +169,16 @@ func (this *incomingConn) inboundLoop() {
 				this, m.CleanSession, m.KeepAliveTimer)
 
 		case *proto.Publish:
-			this.publish(m)
+			this.doPublish(m)
 
 		case *proto.Subscribe:
-			this.subscribe(m)
+			this.doSubscribe(m)
 
 		case *proto.Unsubscribe:
-			this.unsubscribe(m)
+			this.doUnsubscribe(m)
+
+		case *proto.PubAck:
+			this.doPublishAck(m)
 
 		case *proto.PingReq:
 			// broker will never ping client
@@ -185,9 +188,6 @@ func (this *incomingConn) inboundLoop() {
 		case *proto.Disconnect:
 			log.Debug("%s actively disconnect", this)
 			return
-
-		case *proto.PubAck:
-			this.publishAck(m)
 
 		default:
 			log.Warn("%s -> unexpected %T", this, m)
@@ -274,7 +274,7 @@ func (this *incomingConn) nextInternalMsgId() {
 	//this.server.cf.Peers.SelfId
 }
 
-func (this *incomingConn) connect(m *proto.Connect) (rc proto.ReturnCode) {
+func (this *incomingConn) doConnect(m *proto.Connect) (rc proto.ReturnCode) {
 	rc = proto.RetCodeAccepted // default is ok
 
 	// validate protocol name and version
@@ -337,7 +337,7 @@ func (this *incomingConn) connect(m *proto.Connect) (rc proto.ReturnCode) {
 	return
 }
 
-func (this *incomingConn) publish(m *proto.Publish) {
+func (this *incomingConn) doPublish(m *proto.Publish) {
 	this.validateMessage(m)
 
 	// TODO assert m.TopicName is not wildcard
@@ -364,7 +364,7 @@ func (this *incomingConn) publish(m *proto.Publish) {
 	}
 }
 
-func (this *incomingConn) publishAck(m *proto.PubAck) {
+func (this *incomingConn) doPublishAck(m *proto.PubAck) {
 	this.validateMessage(m)
 
 	// get flying messages for this client
@@ -372,7 +372,7 @@ func (this *incomingConn) publishAck(m *proto.PubAck) {
 	// if found, mark this flying message
 }
 
-func (this *incomingConn) subscribe(m *proto.Subscribe) {
+func (this *incomingConn) doSubscribe(m *proto.Subscribe) {
 	this.validateMessage(m)
 
 	suback := &proto.SubAck{
@@ -393,7 +393,7 @@ func (this *incomingConn) subscribe(m *proto.Subscribe) {
 	}
 }
 
-func (this *incomingConn) unsubscribe(m *proto.Unsubscribe) {
+func (this *incomingConn) doUnsubscribe(m *proto.Unsubscribe) {
 	this.validateMessage(m)
 
 	for _, t := range m.Topics {
