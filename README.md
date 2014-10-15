@@ -88,4 +88,3 @@ Thanks to https://github.com/jeffallen/mqtt
 *   c(pub)->s(pub to subs), msg id may conflict
 
 
-[10/11/14 18:58:50] [EROR] 549925812769190423@127.0.0.1:54483: jobs full 1000, lost &{Header:{DupFlag:false Retain:false QosLevel:0} TopicName:loadtest/19 MessageId:0 Payload:[108 111 97 100 116 101 115 116 32 112 97 121 108 111 97 100]}
