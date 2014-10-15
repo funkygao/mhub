@@ -232,17 +232,17 @@ func (this *incomingConn) outboundLoop() {
 			t1 = time.Now()
 			this.conn.SetWriteDeadline(t1.Add(this.server.cf.Broker.IOTimeout))
 			err := job.m.Encode(this.conn)
+			elapsed = time.Since(t1)
 			if job.r != nil {
 				// notifiy the sender that this message is sent
 				close(job.r)
 			}
 			if err != nil {
-				log.Error("%s %s", this, err)
+				log.Error("client[%s]: %s, %s", this, err, elapsed)
 				return
 			}
 
 			totalN++
-			elapsed = time.Since(t1)
 			if elapsed.Nanoseconds() > this.server.cf.Broker.ClientSlowThreshold.Nanoseconds() {
 				slowN++
 				log.Warn("Slow client[%s] %d/%d, %s", this, slowN, totalN, elapsed)
