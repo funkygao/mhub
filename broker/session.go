@@ -97,7 +97,7 @@ func (this *incomingConn) del() {
 
 func (this *incomingConn) submit(m proto.Message) {
 	if !this.alive {
-		log.Error("%s submit on dead client: %T %+v", this, m, m)
+		log.Debug("%s submit on dead client: %T %+v", this, m, m)
 		return
 	}
 
