@@ -24,6 +24,7 @@ var conns = flag.Int("conns", 500, "how many conns")
 
 var recv int64
 var abort int64
+var goAhead = make(chan bool)
 var dialWg sync.WaitGroup
 
 func main() {
@@ -44,6 +45,9 @@ func main() {
 
 	dialWg.Wait()
 	log.Printf("%d connections made", *conns)
+
+	// broadcast to all goroutines, let them begin mqtt
+	close(goAhead)
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
@@ -71,6 +75,7 @@ func subscribe(topic string, no int) {
 	}
 
 	dialWg.Done()
+	<-goAhead
 
 	cc := mqtt.NewClientConn(conn)
 	cc.Dump = *dump
