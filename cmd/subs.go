@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -18,9 +20,11 @@ var id = flag.String("id", "", "client id")
 var user = flag.String("user", "", "username")
 var pass = flag.String("pass", "", "password")
 var dump = flag.Bool("dump", false, "dump messages?")
-var conns = flag.Int("conns", 200, "how many conns")
+var conns = flag.Int("conns", 500, "how many conns")
 
 var recv int64
+var abort int64
+var dialWg sync.WaitGroup
 
 func main() {
 	flag.Parse()
@@ -33,15 +37,20 @@ func main() {
 	}
 	for i := 0; i < flag.NArg(); i++ {
 		for j := 0; j < *conns; j++ {
+			dialWg.Add(1)
 			go subscribe(flag.Arg(i), j)
 		}
 	}
+
+	dialWg.Wait()
+	log.Printf("%d connections made", *conns)
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 		for _ = range ticker.C {
-			log.Printf("recv %d", atomic.LoadInt64(&recv))
+			log.Printf("recv: %d, abort: %d", atomic.LoadInt64(&recv),
+				atomic.LoadInt64(&abort))
 		}
 	}()
 
@@ -49,21 +58,30 @@ func main() {
 }
 
 func subscribe(topic string, no int) {
+	defer func() {
+		atomic.AddInt64(&abort, 1)
+	}()
+
+	time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)))
 	conn, err := net.Dial("tcp", *host)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		dialWg.Done()
 		return
 	}
+
+	dialWg.Done()
+
 	cc := mqtt.NewClientConn(conn)
 	cc.Dump = *dump
 	cc.KeepAlive = 60
 	cc.ClientId = *id
 
 	if err := cc.Connect(*user, *pass); err != nil {
-		fmt.Fprintf(os.Stderr, "connect: %v\n", err)
-		os.Exit(1)
+		log.Printf("connect: %v\n", err)
+		return
 	}
-	fmt.Println("Connected with client id ", cc.ClientId)
+	//fmt.Println("Connected with client id ", cc.ClientId)
 
 	tq := make([]proto.TopicQos, 1)
 	tq[0].Topic = topic
