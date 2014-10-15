@@ -49,7 +49,7 @@ func (this *incomingConn) heartbeat(keepAliveTimer time.Duration) {
 			// 1.5*KeepAliveTimer latency tolerance
 			deadline := int64(float64(this.lastOpTime) + keepAliveTimer.Seconds()*1.5)
 			overIdle := time.Now().Unix() - deadline
-			if overIdle > 0 {
+			if overIdle > 0 && this.alive {
 				this.submitSync(&proto.Disconnect{}).wait()
 				log.Warn("%s over idle %ds, kicked out", this, overIdle)
 
