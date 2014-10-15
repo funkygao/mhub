@@ -113,7 +113,7 @@ func (this *subscriptions) subscribers(topic string) []*incomingConn {
 	res := this.subs[topic]
 
 	// process wildcards
-	parts := strings.Split(topic, "/")
+	parts := strings.Split(topic, SLASH)
 	for _, w := range this.wildcards {
 		if w.matches(parts) {
 			res = append(res, w.c)
