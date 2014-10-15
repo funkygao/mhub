@@ -59,6 +59,12 @@ func (this *peers) start(listenAddr string) error {
 	return nil
 }
 
+func (this *peers) submit(m proto.Message) {
+	for _, p := range this.nodes {
+		p.submit(m)
+	}
+}
+
 func (this *peers) discover() {
 	log.Debug("discovering peers...")
 
@@ -110,10 +116,4 @@ func (this *peers) join(host string) error {
 
 func (this *peers) leave(host string) {
 
-}
-
-func (this *peers) submit(m proto.Message) {
-	for _, p := range this.nodes {
-		p.submit(m)
-	}
 }
