@@ -78,7 +78,8 @@ func (this *endpoint) submit(m proto.Message) {
 	select {
 	case this.jobs <- job{m: m}:
 	default:
-		log.Warn("peer[%s]: jobs full %d, discard %T %+v", this.host, len(this.jobs), m, m)
+		log.Warn("peer[%s]: outbound full %d, discard %T %+v", this.host,
+			len(this.jobs), m, m)
 	}
 
 }
