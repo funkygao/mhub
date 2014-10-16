@@ -84,6 +84,7 @@ func (this *stats) start() {
 		totalPackets int64
 		lastPackets  int64
 		throughput   int64
+		nsInMs       uint64 = 1000 * 1000
 	)
 	for _ = range ticker.C {
 		runtime.ReadMemStats(ms)
@@ -102,16 +103,14 @@ func (this *stats) start() {
 		throughput = (totalPackets - lastPackets) / int64(this.interval.Seconds())
 		lastPackets = totalPackets
 
-		log.Info("ver:%s, since:%s, go:%d, mem:%s, gc:{num:%d, pause:%dms, malloc:%d, free:%d, ptr:%d}, cpu:{%3.2f%%us, %3.2f%%sy}",
+		log.Info("ver:%s, since:%s, go:%d, mem:%s, gc:%dms/%d=%d, cpu:{%3.2f%%us, %3.2f%%sy}",
 			server.BuildID,
 			time.Since(startedAt),
 			runtime.NumGoroutine(),
 			gofmt.ByteSize(ms.Alloc),
+			ms.PauseTotalNs/nsInMs,
 			ms.NumGC,
-			ms.PauseTotalNs/(1000*1000),
-			ms.Mallocs,
-			ms.Frees,
-			ms.Lookups,
+			ms.PauseTotalNs/(nsInMs*uint64(ms.NumGC)),
 			userCpuUtil,
 			sysCpuUtil)
 
