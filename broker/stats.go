@@ -103,14 +103,13 @@ func (this *stats) start() {
 		throughput = (totalPackets - lastPackets) / int64(this.interval.Seconds())
 		lastPackets = totalPackets
 
-		log.Info("ver:%s, since:%s, go:%d, mem:%s, gc:%dms/%d=%d, heap:%s,%s,%s,%s cpu:{%3.2f%%us, %3.2f%%sy}",
+		log.Info("ver:%s, since:%s, go:%d, gc:%dms/%d=%d, heap:{%s, %s, %s, %s} cpu:{%3.2f%%us, %3.2f%%sy}",
 			server.BuildID,
 			time.Since(startedAt),
 			runtime.NumGoroutine(),
-			gofmt.ByteSize(ms.Alloc),
 			ms.PauseTotalNs/nsInMs,
 			ms.NumGC,
-			ms.PauseTotalNs/(nsInMs*uint64(ms.NumGC)),
+			ms.PauseTotalNs/(nsInMs*uint64(ms.NumGC))+1,
 			gofmt.ByteSize(ms.HeapSys),      // bytes it has asked the operating system for
 			gofmt.ByteSize(ms.HeapAlloc),    // bytes currently allocated in the heap
 			gofmt.ByteSize(ms.HeapIdle),     // bytes in the heap that are unused
