@@ -35,13 +35,16 @@ func main() {
 			}
 		}
 
+		// scavenger only release memory that has been unused for >5m
 		runtime.ReadMemStats(&m)
-		fmt.Printf("%10s,%10s,%10s,%10s,%10s,%d\n",
-			gofmt.ByteSize(m.HeapSys),
+		fmt.Printf("%10s,%10s,%10s,%10s,%10s,%10d,%12d,%d\n",
+			gofmt.ByteSize(m.HeapSys), // bytes it has asked the operating system for
 			gofmt.ByteSize(bytes),
-			gofmt.ByteSize(m.HeapAlloc),
-			gofmt.ByteSize(m.HeapIdle),
-			gofmt.ByteSize(m.HeapReleased),
+			gofmt.ByteSize(m.HeapAlloc),    // bytes currently allocated in the heap
+			gofmt.ByteSize(m.HeapIdle),     // bytes in the heap that are unused
+			gofmt.ByteSize(m.HeapReleased), // bytes returned to the operating system, 5m for scavenger
+			m.NumGC,
+			m.PauseTotalNs,
 			makes)
 	}
 }
