@@ -102,11 +102,16 @@ func (this *stats) start() {
 		throughput = (totalPackets - lastPackets) / int64(this.interval.Seconds())
 		lastPackets = totalPackets
 
-		log.Info("ver:%s, since:%s, go:%d, mem:%s, cpu:{%3.2f%%us, %3.2f%%sy}",
+		log.Info("ver:%s, since:%s, go:%d, mem:%s, gc:{num:%d, pause:%dms, malloc:%d, free:%d, ptr:%d}, cpu:{%3.2f%%us, %3.2f%%sy}",
 			server.BuildID,
 			time.Since(startedAt),
 			runtime.NumGoroutine(),
 			gofmt.ByteSize(ms.Alloc),
+			ms.NumGC,
+			ms.PauseTotalNs/(1000*1000),
+			ms.Mallocs,
+			ms.Frees,
+			ms.Lookups,
 			userCpuUtil,
 			sysCpuUtil)
 
@@ -116,6 +121,8 @@ func (this *stats) start() {
 			gofmt.ByteSize(this.inBytes),
 			gofmt.ByteSize(this.outBytes),
 			gofmt.ByteSize(this.replBytes))
+
+		log.Info("")
 	}
 }
 
