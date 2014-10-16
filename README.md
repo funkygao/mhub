@@ -60,6 +60,11 @@ Thanks to https://github.com/jeffallen/mqtt
 
 * throughput
 * max concurrenty conn
+  - about 40KB per connection(100K conn is 4GB)
+  - vitess typically run 5-20K connections and rarely exceed 1GB
+  - 600K concurrent tcp conns consumes 16GB with each 28KB
+  - GOGC mgc0.c
+  - GOTRACEBACK
 
 ### Clustering
 
@@ -80,6 +85,7 @@ Thanks to https://github.com/jeffallen/mqtt
 ### TODO
 *   why job chan got full under loadtest
 *   cluster of brokers, scales with the number of MQTT clients
+*   recycling mem buffer to avoid trigger GC
 *   more edge cases testing
 *   retain, last will, clean session
     - retain is 'last known good value'
