@@ -10,7 +10,6 @@ func BenchmarkChanRecv(b *testing.B) {
         for {
             select {
             case <-c:
-            default:
             }
         }
     }()
