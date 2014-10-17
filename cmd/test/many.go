@@ -67,7 +67,7 @@ func client(i int) {
 	if err != nil {
 		log.Fatal("dial: ", err)
 	}
-	cc := mqtt.NewClientConn(conn)
+	cc := mqtt.NewClientConn(conn, 100)
 	cc.Dump = *dump
 	cc.KeepAlive = 60
 

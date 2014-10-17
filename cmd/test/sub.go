@@ -32,7 +32,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	cc := mqtt.NewClientConn(conn)
+	cc := mqtt.NewClientConn(conn, 100)
 	cc.Dump = *dump
 	cc.KeepAlive = 60
 	cc.ClientId = *id

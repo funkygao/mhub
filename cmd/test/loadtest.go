@@ -109,7 +109,7 @@ func connect() *mqtt.ClientConn {
 		fmt.Fprintf(os.Stderr, "dial: %v\n", err)
 		os.Exit(2)
 	}
-	cc := mqtt.NewClientConn(conn)
+	cc := mqtt.NewClientConn(conn, 100)
 	cc.Dump = *dump
 	cc.KeepAlive = 60
 	cc.ClientId = *id

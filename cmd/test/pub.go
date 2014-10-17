@@ -20,8 +20,6 @@ var wait = flag.Bool("wait", false, "stay connected after publishing?")
 func main() {
 	flag.Parse()
 
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	if flag.NArg() != 2 {
 		fmt.Fprintln(os.Stderr, "usage: pub topic message")
 		return
@@ -32,7 +30,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "dial: ", err)
 		return
 	}
-	cc := mqtt.NewClientConn(conn)
+	cc := mqtt.NewClientConn(conn, 100)
 	cc.Dump = *dump
 
 	if err := cc.Connect(*user, *pass); err != nil {

@@ -26,93 +26,197 @@ func init() {
 }
 
 type ClientConn struct {
+	conn net.Conn
+
 	ClientId  string
 	KeepAlive uint16
 	Dump      bool
-	Incoming  chan *proto.Publish
+	Incoming  chan *proto.Publish // subscribed topics downstream channel
 
-	conn net.Conn
-
-	out      chan job
-	doneChan chan struct{}
+	persist    Store
+	lastOpTime time.Time
+	out        chan job
+	doneChan   chan struct{}
 
 	puback  chan *proto.PubAck
 	connack chan *proto.ConnAck
 	suback  chan *proto.SubAck
 }
 
-func NewClientConn(c net.Conn) *ClientConn {
+func NewClientConn(c net.Conn, queueLength int) *ClientConn {
 	c.(*net.TCPConn).SetNoDelay(true)
-	cc := &ClientConn{
+	this := &ClientConn{
 		conn:     c,
-		out:      make(chan job, clientQueueLength),
-		Incoming: make(chan *proto.Publish, clientQueueLength),
+		persist:  NewMemoryStore(),
+		out:      make(chan job, queueLength), // TODO configurable queue len
+		Incoming: make(chan *proto.Publish, queueLength),
 		doneChan: make(chan struct{}),
 		connack:  make(chan *proto.ConnAck),
 		suback:   make(chan *proto.SubAck),
+		puback:   make(chan *proto.PubAck),
 	}
-	go cc.inboundLoop()
-	go cc.outboundLoop()
-	return cc
+	this.persist.Open()
+	go this.inboundLoop()
+	go this.outboundLoop()
+	return this
 }
 
-func (c *ClientConn) inboundLoop() {
-	defer func() {
-		close(c.out) // will terminate outboundLoop
+// timeout is caller's job
+func (this *ClientConn) Connect(user, pass string) error {
+	if this.ClientId == "" {
+		this.ClientId = fmt.Sprint(clientIdRand.Int63())
+	}
 
-		// Cause any goroutines waiting on messages to arrive to exit.
-		close(c.Incoming)
+	req := &proto.Connect{
+		ProtocolName:    protocolName,
+		ProtocolVersion: protocolVersion,
+		ClientId:        this.ClientId,
+		CleanSession:    true, // FIXME
+		KeepAliveTimer:  this.KeepAlive,
+	}
+	if this.KeepAlive > 0 {
+		go this.runKeepAlive()
+	}
+	if user != "" {
+		req.UsernameFlag = true
+		req.PasswordFlag = true
+		req.Username = user
+		req.Password = pass
+	}
+
+	this.sync(req)
+	ack := <-this.connack
+	return proto.ConnectionErrors[ack.ReturnCode]
+}
+
+func (this *ClientConn) Disconnect() {
+	this.sync(&proto.Disconnect{})
+	<-this.doneChan
+}
+
+func (this *ClientConn) Subscribe(topics []proto.TopicQos) *proto.SubAck {
+	this.sync(&proto.Subscribe{
+		Header:    proto.NewHeader(dupFalse, proto.QosAtLeastOnce, retainFalse),
+		MessageId: 0,
+		Topics:    topics,
+	})
+	return <-this.suback
+}
+
+func (this *ClientConn) Unsubscribe(m *proto.Unsubscribe) {
+	this.out <- job{m: m}
+}
+
+func (this *ClientConn) Publish(m *proto.Publish) {
+	this.out <- job{m: m}
+
+	switch m.QosLevel {
+	case proto.QosAtMostOnce:
+		return
+
+	case proto.QosAtLeastOnce:
+		<-this.puback
+
+	case proto.QosExactlyOnce:
+		panic("not supported QoS")
+	}
+}
+
+// sync sends a message and blocks until it was actually sent.
+func (this *ClientConn) sync(m proto.Message) {
+	j := job{m: m, r: make(receipt)}
+	this.out <- j
+	<-j.r
+}
+
+func (this *ClientConn) refreshOpTime() {
+	this.lastOpTime = time.Now()
+}
+
+func (this *ClientConn) runKeepAlive() {
+	ticker := time.NewTicker(time.Duration(this.KeepAlive) * time.Second)
+	defer func() {
+		ticker.Stop()
 	}()
 
 	for {
-		// TODO: timeout (first message and/or keepalives)
-		m, err := proto.DecodeOneMessage(c.conn, nil)
+		select {
+		case <-ticker.C:
+			this.out <- job{m: &proto.PingReq{}}
+
+		case <-this.doneChan:
+			return
+		}
+	}
+}
+
+func (this *ClientConn) inboundLoop() {
+	defer func() {
+		close(this.out) // will terminate outboundLoop
+
+		// Cause any goroutines waiting on messages to arrive to exit.
+		close(this.Incoming)
+
+		close(this.connack)
+		close(this.suback)
+		close(this.puback)
+	}()
+
+	for {
+		m, err := proto.DecodeOneMessage(this.conn, nil)
 		if err != nil {
 			if err == io.EOF {
 				return
 			}
 
-			// e,g. connection reset by peer(TCP RST recved)
 			log.Println(err)
 			return
 		}
 
-		if c.Dump {
-			log.Printf("dump  in: %T", m)
+		if this.Dump {
+			log.Printf("<- %T", m)
 		}
 
 		switch m := m.(type) {
 		case *proto.Publish:
-			c.Incoming <- m
+			this.Incoming <- m
+
 		case *proto.PubAck:
-			// ignore these
-			continue
+			this.puback <- m
+
 		case *proto.ConnAck:
-			c.connack <- m
+			this.connack <- m
+
 		case *proto.SubAck:
-			c.suback <- m
+			this.suback <- m
+
 		case *proto.Disconnect:
 			return
+
+		case *proto.PingResp:
+			// ignore this
+			continue
+
 		default:
-			// should never get here
-			log.Printf("cli reader: got msg type %T", m)
+			log.Printf("%s -> unexpected %T", this, m)
 		}
 	}
 }
 
-func (c *ClientConn) outboundLoop() {
+func (this *ClientConn) outboundLoop() {
 	defer func() {
-		c.conn.Close() // inbouldLoop will get EOF
-		close(c.doneChan)
+		this.conn.Close() // inbouldLoop will get EOF
+
+		close(this.doneChan)
 	}()
 
-	for job := range c.out {
-		if c.Dump {
-			log.Printf("dump out: %T", job.m)
+	for job := range this.out {
+		if this.Dump {
+			log.Printf("-> %T", job.m)
 		}
 
 		// TODO: write timeout
-		err := job.m.Encode(c.conn)
+		err := job.m.Encode(this.conn)
 		if job.r != nil {
 			close(job.r)
 		}
@@ -126,83 +230,4 @@ func (c *ClientConn) outboundLoop() {
 			return
 		}
 	}
-}
-
-// Send the CONNECT message to the server. If the ClientId is not already
-// set, use a default (a 63-bit decimal random number). The "clean session"
-// bit is always set.
-func (c *ClientConn) Connect(user, pass string) error {
-	// TODO: Keepalive timer
-	if c.ClientId == "" {
-		c.ClientId = fmt.Sprint(clientIdRand.Int63())
-	}
-	req := &proto.Connect{
-		ProtocolName:    protocolName,
-		ProtocolVersion: protocolVersion,
-		ClientId:        c.ClientId,
-		CleanSession:    true,
-		KeepAliveTimer:  c.KeepAlive,
-	}
-	if user != "" {
-		req.UsernameFlag = true
-		req.PasswordFlag = true
-		req.Username = user
-		req.Password = pass
-	}
-
-	if c.KeepAlive > 0 {
-		go c.runKeepAlive()
-	}
-
-	c.sync(req)
-	ack := <-c.connack
-	return proto.ConnectionErrors[ack.ReturnCode]
-}
-
-// Sent a DISCONNECT message to the server. This function blocks until the
-// disconnect message is actually sent, and the connection is closed.
-func (c *ClientConn) Disconnect() {
-	c.sync(&proto.Disconnect{})
-	<-c.doneChan
-}
-
-// Subscribe subscribes this connection to a list of topics. Messages
-// will be delivered on the Incoming channel.
-func (c *ClientConn) Subscribe(tqs []proto.TopicQos) *proto.SubAck {
-	c.sync(&proto.Subscribe{
-		Header:    proto.NewHeader(dupFalse, proto.QosAtLeastOnce, retainFalse),
-		MessageId: 0,
-		Topics:    tqs,
-	})
-	ack := <-c.suback
-	return ack
-}
-
-func (c *ClientConn) Unsubscribe(m *proto.Unsubscribe) {
-	c.out <- job{m: m}
-}
-
-// Publish publishes the given message to the MQTT server.
-// The QosLevel of the message must be QosAtLeastOnce for now.
-func (c *ClientConn) Publish(m *proto.Publish) {
-	// a new message instance is set to "At Least Once", a Quality of Service (QoS) of 1
-	// which means the sender will deliver the message at least once and, if there's no acknowledgement
-	// of it, it will keep sending it with a duplicate flag set until an acknowledgement turns up, at
-	// which point the client removes the message from its persisted set of messages.
-	if m.QosLevel != proto.QosAtMostOnce {
-		panic("unsupported QoS level")
-	}
-	c.out <- job{m: m}
-}
-
-// sync sends a message and blocks until it was actually sent.
-func (c *ClientConn) sync(m proto.Message) {
-	j := job{m: m, r: make(receipt)}
-	c.out <- j
-	<-j.r
-	return
-}
-
-func (c *ClientConn) runKeepAlive() {
-
 }

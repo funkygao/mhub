@@ -1,8 +1,5 @@
 package broker
 
-// TODO mv to config
-const clientQueueLength = 100
-
 const (
 	retainFalse = false
 	retainTrue  = true
