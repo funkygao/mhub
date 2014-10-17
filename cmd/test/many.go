@@ -7,6 +7,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -70,6 +71,7 @@ func client(i int) {
 		log.Fatal("dial: ", err)
 	}
 	cc := mqtt.NewClientConn(conn, 100)
+	cc.ClientId = fmt.Sprintf("many.%d", i)
 	cc.Dump = *dump
 	cc.KeepAlive = uint16(*keepalive)
 

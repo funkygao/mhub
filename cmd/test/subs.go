@@ -80,7 +80,7 @@ func subscribe(topic string, no int) {
 	cc := mqtt.NewClientConn(conn, 100)
 	cc.Dump = *dump
 	cc.KeepAlive = 60
-	cc.ClientId = *id
+	cc.ClientId = fmt.Sprintf("sub.%d", no)
 
 	if err := cc.Connect(*user, *pass); err != nil {
 		log.Printf("connect: %v\n", err)

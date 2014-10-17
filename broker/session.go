@@ -140,6 +140,7 @@ func (this *incomingConn) inboundLoop() {
 		if err != nil {
 			if err != io.EOF && !strings.HasSuffix(err.Error(), errTcpUseOfClosedNetwork) {
 				// e,g. read tcp 106.49.97.242:62547: connection reset by peer
+				// e,g. read tcp 127.0.0.1:65256: operation timed out
 				log.Error("%v: %s", err, this)
 			}
 

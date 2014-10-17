@@ -11,26 +11,43 @@ import (
 type endpoint struct {
 	stats *stats
 
-	cf    config.PeersConfig
-	host  string   // host of other node, not myself
-	conn  net.Conn // outbound conn to other node
-	jobs  chan job
-	alive bool
+	cf      config.PeersConfig
+	host    string   // host of other node, not myself
+	conn    net.Conn // outbound conn to other node
+	jobs    chan job
+	alive   bool
+	running bool
 }
 
 func newEndpoint(host string, cf config.PeersConfig, s *stats) (this *endpoint) {
 	return &endpoint{
-		stats: s,
-		cf:    cf,
-		host:  host,
-		jobs:  make(chan job, cf.QueueLen),
-		alive: true,
+		stats:   s,
+		cf:      cf,
+		host:    host,
+		jobs:    make(chan job, cf.QueueLen),
+		alive:   true,
+		running: true,
 	}
 }
 
+func (this *endpoint) stop() {
+	this.running = false
+}
+
 func (this *endpoint) start() {
+	for this.running {
+		this.runSession()
+
+		// TODO sleep between retry? what about data lost during retry?
+		log.Info("peer[%s] restarting", this.host)
+	}
+}
+
+func (this *endpoint) runSession() {
 	defer func() {
-		this.conn.Close()
+		if this.conn != nil {
+			this.conn.Close()
+		}
 		this.alive = false
 		close(this.jobs)
 	}()
@@ -42,11 +59,12 @@ func (this *endpoint) start() {
 		return
 	}
 
+	this.alive = true
+	log.Info("peer[%s] connected", this.host)
+
 	tcpConn, _ := this.conn.(*net.TCPConn)
 	tcpConn.SetNoDelay(this.cf.TcpNoDelay)
 	tcpConn.SetKeepAlive(this.cf.Keepalive)
-
-	log.Info("peer[%+v] connected", this.host)
 
 	// consume jobs and send to subscription clients
 	for job := range this.jobs {
@@ -60,12 +78,11 @@ func (this *endpoint) start() {
 		this.stats.replicated()
 		this.stats.addRepl(job.m)
 	}
-
 }
 
 func (this *endpoint) submit(m proto.Message) {
 	if !this.alive {
-		log.Error("peer[%s] already died, %T %+v", this.host, m, m)
+		//log.Error("peer[%s] already died, %T %+v", this.host, m, m)
 		return
 	}
 
