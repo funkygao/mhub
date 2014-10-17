@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+// A random number generator ready to make client-id's, if
+// they do not provide them to us.
+var clientIdRand *rand.Rand
+
 func init() {
 	var seed int64
 	var sb [4]byte
@@ -21,19 +25,18 @@ func init() {
 	clientIdRand = rand.New(rand.NewSource(seed))
 }
 
-// A ClientConn holds all the state associated with a connection
-// to an MQTT server. It should be allocated via NewClientConn.
 type ClientConn struct {
-	ClientId  string // May be set before the call to Connect.
+	ClientId  string
 	KeepAlive uint16
-	Dump      bool                // When true, dump the messages in and out.
-	Incoming  chan *proto.Publish // Incoming messages arrive on this channel.
+	Dump      bool
+	Incoming  chan *proto.Publish
 
 	conn net.Conn
 
 	out      chan job
 	doneChan chan struct{}
 
+	puback  chan *proto.PubAck
 	connack chan *proto.ConnAck
 	suback  chan *proto.SubAck
 }
@@ -147,6 +150,10 @@ func (c *ClientConn) Connect(user, pass string) error {
 		req.Password = pass
 	}
 
+	if c.KeepAlive > 0 {
+		go c.runKeepAlive()
+	}
+
 	c.sync(req)
 	ack := <-c.connack
 	return proto.ConnectionErrors[ack.ReturnCode]
@@ -194,4 +201,8 @@ func (c *ClientConn) sync(m proto.Message) {
 	c.out <- j
 	<-j.r
 	return
+}
+
+func (c *ClientConn) runKeepAlive() {
+
 }
