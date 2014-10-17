@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"sync"
@@ -25,6 +26,7 @@ var host = flag.String("host", "localhost:1883", "hostname of broker")
 var dump = flag.Bool("dump", false, "dump messages?")
 var id = flag.String("id", "", "client id")
 var user = flag.String("user", "", "username")
+var pace = flag.Int("pace", 10, "send a message on average once every pace seconds")
 var pass = flag.String("pass", "", "password")
 
 var cwg sync.WaitGroup
@@ -93,6 +95,7 @@ func pub(i int) {
 		return
 	}
 
+	half := int32(*pace / 2)
 	for i := 0; i < *messages; i++ {
 		cc.Publish(&proto.Publish{
 			Header:    proto.Header{QosLevel: proto.QosAtLeastOnce},
@@ -100,6 +103,11 @@ func pub(i int) {
 			MessageId: uint16(i + 1),
 			Payload:   proto.BytesPayload([]byte(`{"payload":{"330":{"uid":53,"march_id":330,"city_id":53,"opp_uid":0,"world_id":1,"type":"encamp","start_x":72,"start_y":64,"end_x":80,"end_y":78,"start_time":1412999095,"end_time":1412999111,"speed":1,"state":"marching","alliance_id":0}}`)),
 		})
+
+		if *pace > 0 {
+			sltime := rand.Int31n(half) - (half / 2) + int32(*pace)
+			time.Sleep(time.Duration(sltime) * time.Second)
+		}
 	}
 
 	cc.Disconnect()
@@ -109,7 +117,7 @@ func connect() *mqtt.ClientConn {
 	conn, err := net.Dial("tcp", *host)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "dial: %v\n", err)
-		os.Exit(2)
+		return nil
 	}
 	cc := mqtt.NewClientConn(conn, 100)
 	cc.Dump = *dump
