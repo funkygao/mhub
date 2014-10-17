@@ -239,8 +239,14 @@ func (this *incomingConn) outboundLoop() {
 				close(job.r)
 			}
 			if err != nil {
+				// e,g. write tcp 127.0.0.1:59919: connection reset by peer
 				// e,g. write tcp 106.49.97.242:4341: broken pipe
 				// e,g. write tcp 106.49.97.242:61016: i/o timeout
+				// try:
+				//     sock.write('foo')
+				// except:
+				//     pass # connection reset by peer
+				// sock.write('bar') # broken pipe
 				log.Error("client[%s]: %s, %s", this, err, elapsed)
 				return
 			}
