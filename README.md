@@ -82,11 +82,17 @@ Thanks to https://github.com/jeffallen/mqtt
   - PUBLISH messages with QoS1/2 require a message id as part of the packet
   - are handled on a per client and per direction basis
 
+
 ### TODO
 *   why job chan got full under loadtest
 *   cluster of brokers, scales with the number of MQTT clients
-*   recycling mem buffer to avoid trigger GC
+*   GC
+    - gc and scavenger
+    - the more objects there are, the more expensive garbage collection is
+    - the more pointers we need to chase, the more expensive gc is
+    - recycling mem buffer to avoid trigger GC
 *   more edge cases testing
+*   user lock?
 *   retain, last will, clean session
     - retain is 'last known good value'
     - with retain flag true, the published message is held onto by the broker, so when the late arrivers connect to the broker or clients create a new subscription they get all the relevant retained messages.
