@@ -2,6 +2,15 @@ mhub
 ====
 
 Message hub, a real-time MQTT broker that supports cluster.
+    
+    (       )|\     /||\     /|(  ___ \ 
+    | () () || )   ( || )   ( || (   ) )
+    | || || || (___) || |   | || (__/ / 
+    | |(_)| ||  ___  || |   | ||  __ (  
+    | |   | || (   ) || |   | || (  \ \ 
+    | )   ( || )   ( || (___) || )___) )
+    |/     \||/     \|(_______)|/ \___/ 
+                                    
 
 Thanks to https://github.com/jeffallen/mqtt
 
