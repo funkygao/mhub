@@ -1,7 +1,7 @@
 feeder
 ======
 
-Reside on each web server and consumes php's push cmds through rsyslogd, then
+Reside on each web server and consumes php's push cmds through syslog-ng, then
 publish to mhub through persistent connections.
 For a given user's msg, must be ordered(flying message lock/scheduling).
 
