@@ -30,7 +30,7 @@ var pass = flag.String("pass", "", "password")
 var cwg sync.WaitGroup
 
 func main() {
-	log.SetFlags(log.Lmicroseconds)
+	log.SetFlags(log.Lmicroseconds | log.Lshortfile)
 	flag.Parse()
 
 	timeStart := time.Now()
@@ -89,13 +89,15 @@ func pub(i int) {
 
 	var cc *mqtt.ClientConn
 	if cc = connect(); cc == nil {
+		log.Println(i, " failed connection")
 		return
 	}
 
 	for i := 0; i < *messages; i++ {
 		cc.Publish(&proto.Publish{
-			Header:    proto.Header{QosLevel: proto.QosAtMostOnce},
+			Header:    proto.Header{QosLevel: proto.QosAtLeastOnce},
 			TopicName: topic,
+			MessageId: uint16(i + 1),
 			Payload:   proto.BytesPayload([]byte(`{"payload":{"330":{"uid":53,"march_id":330,"city_id":53,"opp_uid":0,"world_id":1,"type":"encamp","start_x":72,"start_y":64,"end_x":80,"end_y":78,"start_time":1412999095,"end_time":1412999111,"speed":1,"state":"marching","alliance_id":0}}`)),
 		})
 	}

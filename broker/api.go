@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -176,7 +177,7 @@ func (this *ClientConn) inboundLoop() {
 	for {
 		m, err := proto.DecodeOneMessage(this.conn, nil)
 		if err != nil {
-			if err == io.EOF {
+			if err == io.EOF || strings.HasSuffix(err.Error(), errTcpUseOfClosedNetwork) {
 				return
 			}
 
