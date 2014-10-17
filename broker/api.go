@@ -139,7 +139,17 @@ func (this *ClientConn) runKeepAlive() {
 		ticker.Stop()
 	}()
 
+	var (
+		interval = time.Duration(this.KeepAlive) * time.Second
+		idle     time.Duration
+	)
 	for {
+		idle = time.Since(this.lastOpTime)
+		if idle < interval {
+			idle = interval
+		}
+
+		time.Sleep(idle)
 		select {
 		case <-ticker.C:
 			this.out <- job{m: &proto.PingReq{}}
