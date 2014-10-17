@@ -107,6 +107,7 @@ func (this *ClientConn) Unsubscribe(m *proto.Unsubscribe) {
 	this.out <- job{m: m}
 }
 
+// timeout is caller's job
 func (this *ClientConn) Publish(m *proto.Publish) {
 	this.out <- job{m: m}
 
@@ -183,6 +184,8 @@ func (this *ClientConn) inboundLoop() {
 			return
 		}
 
+		this.refreshOpTime()
+
 		if this.Dump {
 			log.Printf("<- %T", m)
 		}
@@ -235,6 +238,8 @@ func (this *ClientConn) outboundLoop() {
 			log.Println(err)
 			return
 		}
+
+		this.refreshOpTime()
 
 		if _, ok := job.m.(*proto.Disconnect); ok {
 			return
