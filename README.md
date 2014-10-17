@@ -92,6 +92,7 @@ Thanks to https://github.com/jeffallen/mqtt
     - the more pointers we need to chase, the more expensive gc is
     - recycling mem buffer to avoid trigger GC
 *   more edge cases testing
+*   circuit breaker for peer
 *   user lock?
 *   retain, last will, clean session
     - retain is 'last known good value'
