@@ -25,6 +25,8 @@ var pass = flag.String("pass", "", "password")
 var dump = flag.Bool("dump", false, "dump messages?")
 var wait = flag.Int("wait", 20, "ms to wait between client connects")
 var pace = flag.Int("pace", 10, "send a message on average once every pace seconds")
+var qos = flag.Int("qos", 0, "QoS")
+var keepalive = flag.Int("keepalive", 60, "keepalive interval in seconds")
 
 var payload proto.Payload
 var topic string
@@ -69,7 +71,7 @@ func client(i int) {
 	}
 	cc := mqtt.NewClientConn(conn, 100)
 	cc.Dump = *dump
-	cc.KeepAlive = 60
+	cc.KeepAlive = uint16(*keepalive)
 
 	if err := cc.Connect(*user, *pass); err != nil {
 		log.Fatal("connect: %v\n", err)
@@ -80,14 +82,21 @@ func client(i int) {
 
 	log.Printf("client[%d] connected", i)
 
+	var msgId uint16 = 1
+	var maxMsgId = uint16((1 << 16) - 1)
 	for {
 		cc.Publish(&proto.Publish{
-			Header:    proto.Header{},
+			Header:    proto.Header{QosLevel: proto.QosLevel(*qos)},
 			TopicName: topic,
+			MessageId: msgId,
 			Payload:   payload,
 		})
+		if msgId == maxMsgId {
+			msgId = 1
+		}
 		sltime := rand.Int31n(half) - (half / 2) + int32(*pace)
-		log.Printf("client[%d] published, sleep %ds...", i, sltime)
+		log.Printf("client[%d] published %d, sleep %ds...", i, msgId, sltime)
 		time.Sleep(time.Duration(sltime) * time.Second)
+		msgId++
 	}
 }
