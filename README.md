@@ -2,6 +2,14 @@ mhub
 ====
 
 Message hub, a real-time MQTT broker that supports cluster.
+                                                       
+               _           _     
+              | |         | |    
+     _ __ ___ | |__  _   _| |__  
+    | '_ ` _ \| '_ \| | | | '_ \ 
+    | | | | | | | | | |_| | |_) |
+    |_| |_| |_|_| |_|\__,_|_.__/ 
+                                 
 
 Thanks to https://github.com/jeffallen/mqtt
 
@@ -63,8 +71,6 @@ Thanks to https://github.com/jeffallen/mqtt
   - about 40KB per connection(100K conn is 4GB)
   - vitess typically run 5-20K connections and rarely exceed 1GB
   - 600K concurrent tcp conns consumes 16GB with each 28KB
-  - GOGC mgc0.c
-  - GOTRACEBACK
 
 ### Clustering
 
@@ -91,7 +97,10 @@ Thanks to https://github.com/jeffallen/mqtt
     - the more objects there are, the more expensive garbage collection is
     - the more pointers we need to chase, the more expensive gc is
     - recycling mem buffer to avoid trigger GC
+    - GOGC mgc0.c
+    - GOTRACEBACK
 *   more edge cases testing
+*   circuit breaker for peer
 *   user lock?
 *   retain, last will, clean session
     - retain is 'last known good value'
