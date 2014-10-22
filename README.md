@@ -1,7 +1,7 @@
 mhub
 ====
 
-Message hub, a real-time MQTT broker that supports cluster.
+Message hub, a real-time MQTT v3.1 broker that supports cluster.
                                                        
                _           _     
               | |         | |    
