@@ -1,11 +1,29 @@
 package broker
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func BenchmarkSprintf(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		fmt.Sprintf("%s.%d", "i", 34)
+	}
+
+}
+
+func BenchmarkStringConcat(b *testing.B) {
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_ = "i." + strconv.Itoa(34)
+	}
+}
 
 func BenchmarkChannelClose(b *testing.B) {
 	b.ReportAllocs()
