@@ -64,10 +64,12 @@ func (this *Server) Start() {
 				alive:         true,
 				server:        this,
 				conn:          conn,
+				store:         NewMemoryStore(),
 				jobs:          make(chan job, this.cf.Broker.ClientOutboundQueueLen),
 				heartbeatStop: make(chan struct{}),
 				lastOpTime:    time.Now().Unix(),
 			}
+			client.store.Open()
 			go client.inboundLoop()
 			go client.outboundLoop()
 		}

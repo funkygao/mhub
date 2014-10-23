@@ -21,6 +21,7 @@ type incomingConn struct {
 	conn          net.Conn
 	jobs          chan job
 	heartbeatStop chan struct{}
+	store         Store
 	lastOpTime    int64 // // Last Unix timestamp when recieved message from this conn
 }
 
@@ -130,6 +131,7 @@ func (this *incomingConn) submitSync(m proto.Message) receipt {
 func (this *incomingConn) inboundLoop() {
 	defer func() {
 		this.server.stats.clientDisconnect()
+		this.store.Close()
 
 		this.alive = false // to avoid send on closed channel subs.c.submit FIXME
 		close(this.jobs)   // will terminate outboundLoop
@@ -229,6 +231,8 @@ func (this *incomingConn) outboundLoop() {
 			if this.server.cf.Broker.Echo {
 				log.Debug("%s <- %T %+v", this, job.m, job.m)
 			}
+
+			persist_outbound(this.store, job.m)
 
 			t1 = time.Now()
 			this.conn.SetWriteDeadline(t1.Add(this.server.cf.Broker.IOTimeout))
@@ -352,12 +356,15 @@ func (this *incomingConn) doPublish(m *proto.Publish) {
 	this.validateMessage(m)
 
 	// TODO assert m.TopicName is not wildcard
+	persist_inbound(this.store, m)
 
 	// replicate message to all subscribers of this topic
 	this.server.subs.submit(m)
 
 	// replication to peers
-	this.server.peers.submit(m)
+	if isGlobalTopic(m.TopicName) {
+		this.server.peers.submit(m)
+	}
 
 	// for QoS 0, we need do nothing
 	if m.Header.QosLevel == proto.QosAtLeastOnce { // QoS 1
