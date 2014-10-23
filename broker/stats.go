@@ -123,8 +123,6 @@ func (this *stats) start() {
 			gofmt.ByteSize(this.inBytes),
 			gofmt.ByteSize(this.outBytes),
 			gofmt.ByteSize(this.replBytes))
-
-		log.Info("")
 	}
 }
 
