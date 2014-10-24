@@ -1,6 +1,7 @@
 package broker
 
 import (
+	log "github.com/funkygao/log4go"
 	proto "github.com/funkygao/mqttmsg"
 	"sync"
 )
@@ -32,12 +33,13 @@ func (this *MemoryStore) Put(key string, message proto.Message) {
 	this.Lock()
 	this.messages[key] = message
 	this.Unlock()
+	log.Debug("put -> key:%s, val:%#v", key, message)
 }
 
 func (this *MemoryStore) Get(key string) proto.Message {
 	this.RLock()
 	defer this.RUnlock()
-
+	log.Debug("get -> key:%s", key)
 	return this.messages[key]
 }
 
@@ -49,6 +51,7 @@ func (this *MemoryStore) All() []string {
 	for k, _ := range this.messages {
 		keys = append(keys, k)
 	}
+	log.Debug("all: %+v", keys)
 	return keys
 }
 
@@ -56,6 +59,7 @@ func (this *MemoryStore) Del(key string) {
 	this.Lock()
 	delete(this.messages, key)
 	this.Unlock()
+	log.Debug("del %s", key)
 }
 
 func (this *MemoryStore) Close() {
@@ -68,4 +72,5 @@ func (this *MemoryStore) Reset() {
 	this.Lock()
 	this.messages = make(map[string]proto.Message)
 	this.Unlock()
+	log.Debug("reset")
 }

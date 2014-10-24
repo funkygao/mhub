@@ -47,53 +47,29 @@ func obound_mid2key(mid uint16) string {
 func persist_outbound(s Store, m proto.Message) {
 	switch m := m.(type) {
 	case *proto.Publish:
-		if m.Header.QosLevel == proto.QosAtMostOnce {
-			s.Del(ibound_mid2key(m.MessageId))
-		} else if m.Header.QosLevel == proto.QosAtLeastOnce {
+		if m.Header.QosLevel == proto.QosAtLeastOnce {
 			// store in obound until PubAck received
 			s.Put(obound_mid2key(m.MessageId), m)
 		}
 
-	case *proto.Subscribe:
-		// sending Subscribe, store in obound until SubAck received
-		s.Put(obound_mid2key(m.MessageId), m)
+	case *proto.PubAck:
+		s.Del(ibound_mid2key(m.MessageId))
 
-	case *proto.Unsubscribe:
-		// until UnsubAck received
-		s.Put(obound_mid2key(m.MessageId), m)
 	}
-
 }
 
 // govern which incoming messages are persisted
 func persist_inbound(s Store, m proto.Message) {
 	switch m := m.(type) {
-	case *proto.PubAck:
-		if m.Header.QosLevel == proto.QosAtMostOnce {
-			s.Del(obound_mid2key(m.MessageId))
-		}
-
-	case *proto.SubAck:
-		if m.Header.QosLevel == proto.QosAtMostOnce {
-			s.Del(obound_mid2key(m.MessageId))
-		}
-
 	case *proto.Publish:
-		if m.Header.QosLevel == proto.QosAtMostOnce {
-			s.Del(obound_mid2key(m.MessageId))
-		} else if m.Header.QosLevel == proto.QosAtLeastOnce {
-			// Received a publish. store it in ibound
-			// until puback sent
+		if m.Header.QosLevel == proto.QosAtLeastOnce {
+			// store it in ibound until PubAck sent
 			s.Put(ibound_mid2key(m.MessageId), m)
 		}
 
-	case *proto.Subscribe:
-		// sending Subscribe, store in obound until SubAck received
-		s.Put(obound_mid2key(m.MessageId), m)
+	case *proto.PubAck:
+		s.Del(obound_mid2key(m.MessageId))
 
-	case *proto.Unsubscribe:
-		// until UnsubAck received
-		s.Put(obound_mid2key(m.MessageId), m)
 	}
 
 }

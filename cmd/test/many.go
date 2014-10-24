@@ -26,7 +26,7 @@ var pass = flag.String("pass", "", "password")
 var dump = flag.Bool("dump", false, "dump messages?")
 var wait = flag.Int("wait", 20, "ms to wait between client connects")
 var pace = flag.Int("pace", 10, "send a message on average once every pace seconds")
-var qos = flag.Int("qos", 0, "QoS")
+var qos = flag.Int("qos", 1, "QoS")
 var keepalive = flag.Int("keepalive", 60, "keepalive interval in seconds")
 
 var payload proto.Payload

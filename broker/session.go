@@ -138,6 +138,7 @@ func (this *incomingConn) inboundLoop() {
 	}()
 
 	for {
+		// FIXME client connected, but idle for long, should kill it
 		m, err := proto.DecodeOneMessage(this.conn, nil)
 		if err != nil {
 			if err != io.EOF && !strings.HasSuffix(err.Error(), errTcpUseOfClosedNetwork) {
@@ -274,12 +275,6 @@ func (this *incomingConn) outboundLoop() {
 }
 
 // TODO
-func (this *incomingConn) authenticate(username, passwd string) (ok bool) {
-	ok = true
-	return
-}
-
-// TODO
 func (this *incomingConn) validateMessage(m proto.Message) {
 	// must CONNECT before other methods
 }
@@ -377,6 +372,9 @@ func (this *incomingConn) doPublish(m *proto.Publish) {
 
 	// retry-until-acknowledged
 
+	// if a PUBLISH not authorized, MQTT has no way of telling client about this
+	// it must always make a positive acknowledgement according to QoS
+
 	if m.Retain {
 
 	}
@@ -393,6 +391,8 @@ func (this *incomingConn) doPublishAck(m *proto.PubAck) {
 func (this *incomingConn) doSubscribe(m *proto.Subscribe) {
 	this.validateMessage(m)
 
+	// The SUBSCRIBE message also specifies the QoS level at which the subscriber wants to receive published messages.
+
 	suback := &proto.SubAck{
 		MessageId: m.MessageId,
 		TopicsQos: make([]proto.QosLevel, len(m.Topics)),
@@ -404,6 +404,10 @@ func (this *incomingConn) doSubscribe(m *proto.Subscribe) {
 		suback.TopicsQos[i] = proto.QosAtMostOnce
 	}
 	this.submit(suback)
+
+	// A server may start sending PUBLISH messages due to the subscription before the client receives the SUBACK message.
+
+	// Note that if a server implementation does not authorize a SUBSCRIBE request to be made by a client, it has no way of informing that client. It must therefore make a positive acknowledgement with a SUBACK, and the client will not be informed that it was not authorized to subscribe.
 
 	// Process retained messages
 	for _, tq := range m.Topics {
