@@ -26,6 +26,23 @@ type Store interface {
 	Reset()
 }
 
+func getClientStore(clientId string) Store {
+	clientStoresMu.Lock()
+	defer clientStoresMu.Unlock()
+
+	if store, present := clientStores[clientId]; present {
+		return store
+	}
+	clientStores[clientId] = NewMemoryStore()
+	return clientStores[clientId]
+}
+
+func delClientStore(clientId string) {
+	clientStoresMu.Lock()
+	delete(clientStores, clientId)
+	clientStoresMu.Unlock()
+}
+
 // A key MUST have the form "X.[messageid]"
 // where X is 'i' or 'o'
 func key2mid(key string) uint16 {

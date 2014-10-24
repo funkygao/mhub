@@ -63,15 +63,34 @@ func (this *incomingConn) doConnect(m *proto.Connect) (rc proto.ReturnCode) {
 		go this.heartbeat(time.Duration(m.KeepAliveTimer) * time.Second)
 	}
 
+	this.store = getClientStore(m.ClientId)
+
 	// TODO: Last will
 	// The will option allows clients to prepare for the worst.
 	if !m.CleanSession {
-		// broker will keep the subscription active even after the client disconnects
-		// It will also queue any new messages it receives for the client, but
-		// only if they have QoS>0
-		// restore client's subscriptions
-		// deliver flying messages TODO
-		// deliver on connect
+		// restore client's subscriptions TODO
+		// deliver flying messages FXIME
+		for _, key := range this.store.All() {
+			if key[0] == 'i' {
+				// ibound
+			} else {
+				// obound
+			}
+			switch msg := this.store.Get(key).(type) {
+			case *proto.Publish:
+				if msg.Header.QosLevel == proto.QosAtLeastOnce {
+					this.submit(msg)
+				}
+
+			case *proto.PubAck:
+				if msg.Header.QosLevel == proto.QosAtLeastOnce {
+					this.submit(msg)
+				}
+			}
+
+		}
+	} else {
+		delClientStore(m.ClientId)
 	}
 
 	this.submit(&proto.ConnAck{ReturnCode: rc})

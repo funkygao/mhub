@@ -8,6 +8,10 @@ const (
 )
 
 const (
+	initClientNum = 10000
+)
+
+const (
 	SLASH                    = "/"
 	REPLICATION_TOPIC_PREFIX = "r/"
 )
