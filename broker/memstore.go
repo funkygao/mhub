@@ -9,6 +9,7 @@ import (
 // MemoryStore implements the store interface to provide a "persistence"
 // mechanism wholly stored in memory. This is only useful for
 // as long as the client instance exists.
+// FIXME use LRU to avoid being killed by bad client
 type MemoryStore struct {
 	sync.RWMutex
 	messages map[string]proto.Message
