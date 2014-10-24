@@ -90,7 +90,7 @@ func (this *incomingConn) doConnect(m *proto.Connect) (rc proto.ReturnCode) {
 
 		}
 	} else {
-		delClientStore(m.ClientId)
+		this.store.Reset()
 	}
 
 	this.submit(&proto.ConnAck{ReturnCode: rc})
