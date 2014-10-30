@@ -52,7 +52,7 @@ func (this *peers) start(listenAddr string) error {
 			this.server.stats.peerConnect()
 			log.Debug("peer[%s] accepted", conn.RemoteAddr())
 
-			go this.recvReplication(conn)
+			go this.relay(conn)
 		}
 	}()
 
@@ -73,7 +73,8 @@ func (this *peers) discover() {
 
 }
 
-func (this *peers) recvReplication(conn net.Conn) {
+// replay replication
+func (this *peers) relay(conn net.Conn) {
 	defer func() {
 		conn.Close()
 		log.Warn("peer self die")
