@@ -108,4 +108,6 @@ Thanks to https://github.com/jeffallen/mqtt
 *   persistency of messages
 *   c(pub)->s(pub to subs), msg id may conflict
 
+### C1000K
 
+https://github.com/xiaojiaqi/C1000kPracticeGuide
