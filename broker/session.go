@@ -25,13 +25,8 @@ type incomingConn struct {
 	lastOpTime    int64 // // Last Unix timestamp when recieved message from this conn
 }
 
-func (this *incomingConn) String() string {
-	if this.flag == nil {
-		// CONNECT not sent yet
-		return this.conn.RemoteAddr().String()
-	}
-
-	return this.flag.ClientId + "@" + this.conn.RemoteAddr().String()
+func (this *incomingConn) onTerminate() {
+	// record session length and more
 }
 
 // race:
@@ -44,6 +39,7 @@ func (this *incomingConn) inboundLoop() {
 
 		this.alive = false // to avoid send on closed channel subs.c.submit FIXME
 		close(this.jobs)   // will terminate outboundLoop
+		this.onTerminate()
 	}()
 
 	for {
@@ -272,4 +268,13 @@ func (this *incomingConn) submitSync(m proto.Message) receipt {
 	j := job{m: m, r: make(receipt)}
 	this.jobs <- j
 	return j.r
+}
+
+func (this *incomingConn) String() string {
+	if this.flag == nil {
+		// CONNECT not sent yet
+		return this.conn.RemoteAddr().String()
+	}
+
+	return this.flag.ClientId + "@" + this.conn.RemoteAddr().String()
 }
