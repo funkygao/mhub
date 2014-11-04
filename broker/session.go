@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"github.com/funkygao/golib/ratelimiter"
 	log "github.com/funkygao/log4go"
 	"github.com/funkygao/mhub/config"
 	proto "github.com/funkygao/mqttmsg"
@@ -19,15 +20,15 @@ type incomingConn struct {
 
 	alive         bool
 	connectedAt   time.Time
+	lastOpTime    int64 // // Last Unix timestamp when recieved message from this conn
 	stopChan      chan bool
 	conn          net.Conn
 	jobs          chan job
 	heartbeatStop chan struct{}
 	store         Store
-	lastOpTime    int64 // // Last Unix timestamp when recieved message from this conn
 
-	subN          int
-	publishPerMin int
+	subN        int
+	leakyBucket *ratelimiter.LeakyBucket
 }
 
 func (this *incomingConn) onTerminate() {

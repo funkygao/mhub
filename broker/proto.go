@@ -101,6 +101,11 @@ func (this *incomingConn) doConnect(m *proto.Connect) (rc proto.ReturnCode) {
 }
 
 func (this *incomingConn) doPublish(m *proto.Publish) {
+	if !this.leakyBucket.Pour(1) {
+		log.Warn("client[%s] publish rate limite reached: %d", this.server.cf.Broker.ClientMaxPublishPerMinute)
+		this.stop()
+	}
+
 	this.validateMessage(m)
 
 	// TODO assert m.TopicName is not wildcard

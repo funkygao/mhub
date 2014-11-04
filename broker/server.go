@@ -2,6 +2,7 @@ package broker
 
 import (
 	"crypto/tls"
+	"github.com/funkygao/golib/ratelimiter"
 	log "github.com/funkygao/log4go"
 	"github.com/funkygao/mhub/config"
 	"net"
@@ -67,6 +68,7 @@ func (this *Server) Start() {
 				jobs:          make(chan job, this.cf.Broker.ClientOutboundQueueLen),
 				heartbeatStop: make(chan struct{}),
 				lastOpTime:    time.Now().Unix(),
+				leakyBucket:   ratelimiter.NewLeakyBucket(uint16(this.cf.Broker.ClientMaxPublishPerMinute), time.Minute),
 			}
 			go client.inboundLoop()
 			go client.outboundLoop()
