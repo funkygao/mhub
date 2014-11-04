@@ -18,6 +18,7 @@ type incomingConn struct {
 	flag *proto.Connect // nil if not CONNECT ok
 
 	alive         bool
+	connectedAt   time.Time
 	stopChan      chan bool
 	conn          net.Conn
 	jobs          chan job
@@ -30,7 +31,8 @@ type incomingConn struct {
 }
 
 func (this *incomingConn) onTerminate() {
-	// record session length and more
+	// TODO record session length and more
+	time.Since(this.connectedAt)
 }
 
 // race:

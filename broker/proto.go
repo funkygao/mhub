@@ -93,6 +93,8 @@ func (this *incomingConn) doConnect(m *proto.Connect) (rc proto.ReturnCode) {
 		this.store.Reset()
 	}
 
+	this.connectedAt = time.Now()
+
 	this.submit(&proto.ConnAck{ReturnCode: rc})
 
 	return
