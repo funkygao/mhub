@@ -92,13 +92,17 @@ func (this *peers) replay(conn net.Conn) {
 			log.Debug("peers <- %T %+v", m, m)
 		}
 
-		p, ok := m.(*proto.Publish)
-		if !ok {
+		switch m := m.(type) {
+		case *proto.Publish:
+			this.server.subs.submit(m)
+
+		case *proto.Subscribe:
+			// TODO
+
+		default:
 			log.Error("only PUBLISH is replicated, got %+v", m)
 			continue
 		}
-
-		this.server.subs.submit(p)
 	}
 
 }
