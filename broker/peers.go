@@ -101,7 +101,7 @@ func (this *peers) replay(conn net.Conn) {
 			// TODO
 
 		default:
-			log.Error("only PUBLISH is replicated, got %+v", m)
+			log.Error("only Pub/Sub will be replicated, got %#v", m)
 			continue
 		}
 	}
