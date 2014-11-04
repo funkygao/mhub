@@ -97,6 +97,7 @@ Thanks to https://github.com/jeffallen/mqtt
 *   memory/redis based flying message store
 *   presense service(not implemented)
 *   full stats report with REST interface
+*   full benchmark tests
 
 ### TODO
 *   peers broadcast Subscribe problem is new broker don't know subscribed endpoints
