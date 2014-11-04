@@ -102,7 +102,7 @@ func (this *incomingConn) doConnect(m *proto.Connect) (rc proto.ReturnCode) {
 
 func (this *incomingConn) doPublish(m *proto.Publish) {
 	if !this.leakyBucket.Pour(1) {
-		log.Warn("client[%s] publish rate limite reached: %d", this.server.cf.Broker.ClientMaxPublishPerMinute)
+		log.Warn("client[%s] publish rate limit reached: %d/m", this, this.server.cf.Broker.ClientMaxPublishPerMinute)
 		this.stop()
 	}
 
@@ -165,7 +165,7 @@ func (this *incomingConn) doSubscribe(m *proto.Subscribe) {
 	for i, tq := range m.Topics {
 		this.subN++
 		if this.subN > this.server.cf.Broker.ClientMaxSubscriptions {
-			log.Warn("client[%s] max subscription reached: %d", this, this.subN)
+			log.Warn("client[%s] subscription limit reached: %d", this, this.subN)
 			this.stop()
 		}
 

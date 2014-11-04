@@ -66,6 +66,7 @@ func (this *Server) Start() {
 				server:        this,
 				conn:          conn,
 				jobs:          make(chan job, this.cf.Broker.ClientOutboundQueueLen),
+				stopChan:      make(chan bool),
 				heartbeatStop: make(chan struct{}),
 				lastOpTime:    time.Now().Unix(),
 				leakyBucket:   ratelimiter.NewLeakyBucket(uint16(this.cf.Broker.ClientMaxPublishPerMinute), time.Minute),
