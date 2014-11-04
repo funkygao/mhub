@@ -23,6 +23,9 @@ type BrokerConfig struct {
 	ClientSlowThreshold    time.Duration
 	SubscriptionsWorkers   int
 	SubscriptionsQueueLen  int
+
+	ClientMaxSubscriptions    int
+	ClientMaxPublishPerMinute int
 }
 
 func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
@@ -44,6 +47,8 @@ func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
 	this.ClientOutboundQueueLen = cf.Int("client_outbound_queue_len", 100)
 	this.ClientSlowThreshold = cf.Duration("client_slow_threshold", time.Millisecond*100)
 	this.BuffOverflowStrategy = cf.String("buffer_overflow_strategy", BufferOverflowBlock)
+	this.ClientMaxSubscriptions = cf.Int("client_max_subscriptions", 20)
+	this.ClientMaxPublishPerMinute = cf.Int("client_max_publish_per_minute", 60)
 
 	// validation
 	if this.ListenAddr == "" && this.TlsListenAddr == "" {

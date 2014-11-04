@@ -7,6 +7,10 @@
         stats_http_listen_addr: "127.0.0.1:9020"
         prof_http_listen_addr: "127.0.0.1:9021"
 
+        // security related
+        client_max_subscriptions: 20
+        client_max_publish_per_minute: 60
+
         // max_connections==0 means unlimited
         max_connections: 0
         io_timeout: "3s"

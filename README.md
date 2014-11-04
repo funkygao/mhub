@@ -90,6 +90,7 @@ Thanks to https://github.com/jeffallen/mqtt
 
 
 ### TODO
+*   a single client throughput limit
 *   why job chan got full under loadtest
 *   cluster of brokers, scales with the number of MQTT clients
 *   GC
