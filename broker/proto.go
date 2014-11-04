@@ -108,10 +108,15 @@ func (this *incomingConn) doPublish(m *proto.Publish) {
 
 	this.validateMessage(m)
 
+	if !this.authorized(this.flag.Username, m) {
+		this.stop()
+		return
+	}
+
 	// TODO assert m.TopicName is not wildcard
 	persist_inbound(this.store, m)
 
-	// replicate message to all subscribers of this topic
+	// send message to all subscribers of this topic on this broker
 	this.server.subs.submit(m)
 
 	this.server.peers.replicate(m)
@@ -145,6 +150,11 @@ func (this *incomingConn) doPublishAck(m *proto.PubAck) {
 
 func (this *incomingConn) doSubscribe(m *proto.Subscribe) {
 	this.validateMessage(m)
+
+	if !this.authorized(this.flag.Username, m) {
+		this.stop()
+		return
+	}
 
 	// The SUBSCRIBE message also specifies the QoS level at which the subscriber wants to receive published messages.
 
