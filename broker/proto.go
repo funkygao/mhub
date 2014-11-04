@@ -114,10 +114,7 @@ func (this *incomingConn) doPublish(m *proto.Publish) {
 	// replicate message to all subscribers of this topic
 	this.server.subs.submit(m)
 
-	// replication to peers
-	if isGlobalTopic(m.TopicName) {
-		this.server.peers.replicate(m)
-	}
+	this.server.peers.replicate(m)
 
 	// for QoS 0, we need do nothing
 	if m.Header.QosLevel == proto.QosAtLeastOnce { // QoS 1
