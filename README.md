@@ -51,34 +51,31 @@ Thanks to https://github.com/jeffallen/mqtt
                           etcd cluster
 
 
-### Network I/O
+### Features
 
-                 etcd
-                  |
-                  |     +- peer
-                mhub ---|- peer
-                  |     +- peer
-                  |      
-          +----------------+
-          |       |        |
-        client  client  client
-
+*   QoS1 fully implemented
+*   client rate limit
+*   authentication and authorization RBAC
+*   memory/redis based flying message store
+*   presense service(not implemented)
+*   recyclable memory pool to reduce GC
+*   full stats report with REST interface
+*   full benchmark tests
+*   clustering
+    - no SPOF
+    - a client PUBLISH to any node in a cluster will be pushed to all the topic subscribers in the cluster
+       - PUBLISH is replicated across all broker nodes(peers) in the cluster
+    - broker nodes uses etcd for service auto discovery
+    - new broker node automatically joins a cluster
 
 ### Capacity Plan
 
 * throughput
+  - 50K message/sec per broker
 * max concurrenty conn
   - about 40KB per connection(100K conn is 4GB)
   - vitess typically run 5-20K connections and rarely exceed 1GB
   - 600K concurrent tcp conns consumes 16GB with each 28KB
-
-### Clustering
-
-* no SPOF
-* a client PUBLISH to any node in a cluster will be pushed to all the topic subscribers in the cluster
-    - PUBLISH is replicated across all broker nodes(peers) in the cluster
-* broker nodes uses etcd for service auto discovery
-* new broker node automatically joins a cluster
 
 ### Pitfalls
 
@@ -90,16 +87,8 @@ Thanks to https://github.com/jeffallen/mqtt
   - PUBLISH messages with QoS1/2 require a message id as part of the packet
   - are handled on a per client and per direction basis
 
-### Features
-*   QoS1 fully implemented
-*   client rate limit
-*   authentication and authorization RBAC
-*   memory/redis based flying message store
-*   presense service(not implemented)
-*   full stats report with REST interface
-*   full benchmark tests
-
 ### TODO
+
 *   peers broadcast Subscribe problem is new broker don't know subscribed endpoints
 *   why job chan got full under loadtest
 *   cluster of brokers, scales with the number of MQTT clients
