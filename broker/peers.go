@@ -74,6 +74,7 @@ func (this *peers) discover() {
 }
 
 // replay replication
+// TODO implement QoS1?
 func (this *peers) replay(conn net.Conn) {
 	defer func() {
 		conn.Close()
