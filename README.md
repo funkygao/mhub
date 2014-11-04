@@ -84,13 +84,22 @@ Thanks to https://github.com/jeffallen/mqtt
 
 * client id
   - clients need to have an identifier that is unique for all clients connecting to the broker
+  - can be token, but max len is 23
 * message id
+  - uint16
   - PUBLISH messages with QoS1/2 require a message id as part of the packet
   - are handled on a per client and per direction basis
 
+### Features
+*   QoS1 fully implemented
+*   client rate limit
+*   authentication and authorization RBAC
+*   memory/redis based flying message store
+*   presense service(not implemented)
+*   full stats report with REST interface
 
 ### TODO
-*   a single client throughput limit
+*   peers broadcast Subscribe problem is new broker don't know subscribed endpoints
 *   why job chan got full under loadtest
 *   cluster of brokers, scales with the number of MQTT clients
 *   GC
