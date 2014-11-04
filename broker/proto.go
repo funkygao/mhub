@@ -116,7 +116,7 @@ func (this *incomingConn) doPublish(m *proto.Publish) {
 
 	// replication to peers
 	if isGlobalTopic(m.TopicName) {
-		this.server.peers.submit(m)
+		this.server.peers.replicate(m)
 	}
 
 	// for QoS 0, we need do nothing

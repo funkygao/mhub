@@ -59,7 +59,7 @@ func (this *peers) start(listenAddr string) error {
 	return nil
 }
 
-func (this *peers) submit(m *proto.Publish) {
+func (this *peers) replicate(m *proto.Publish) {
 	for _, p := range this.nodes {
 		p.submit(m)
 	}
