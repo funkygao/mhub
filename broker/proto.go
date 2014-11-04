@@ -149,6 +149,12 @@ func (this *incomingConn) doSubscribe(m *proto.Subscribe) {
 		TopicsQos: make([]proto.QosLevel, len(m.Topics)),
 	}
 	for i, tq := range m.Topics {
+		this.subN++
+		if this.subN > this.server.cf.Broker.ClientMaxSubscriptions {
+			log.Warn("client[%s] max subscription reached: %d", this, this.subN)
+			this.stop()
+		}
+
 		// TODO: Handle varying QoS correctly
 		this.server.subs.add(tq.Topic, this)
 
@@ -170,6 +176,8 @@ func (this *incomingConn) doUnsubscribe(m *proto.Unsubscribe) {
 	this.validateMessage(m)
 
 	for _, t := range m.Topics {
+		this.subN--
+
 		this.server.subs.unsub(t, this)
 	}
 

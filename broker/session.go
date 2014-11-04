@@ -18,11 +18,15 @@ type incomingConn struct {
 	flag *proto.Connect // nil if not CONNECT ok
 
 	alive         bool
+	stopChan      chan bool
 	conn          net.Conn
 	jobs          chan job
 	heartbeatStop chan struct{}
 	store         Store
 	lastOpTime    int64 // // Last Unix timestamp when recieved message from this conn
+
+	subN          int
+	publishPerMin int
 }
 
 func (this *incomingConn) onTerminate() {
@@ -174,6 +178,10 @@ func (this *incomingConn) outboundLoop() {
 			if _, ok := job.m.(*proto.Disconnect); ok {
 				return
 			}
+
+		case <-this.stopChan:
+			log.Debug("client[%s] actively stopped", this)
+			return
 		}
 	}
 
@@ -214,6 +222,10 @@ func (this *incomingConn) heartbeat(keepAliveTimer time.Duration) {
 		}
 	}
 
+}
+
+func (this *incomingConn) stop() {
+	close(this.stopChan)
 }
 
 func (this *incomingConn) connected() bool {
