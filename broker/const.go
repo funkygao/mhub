@@ -12,8 +12,7 @@ const (
 )
 
 const (
-	SLASH                    = "/"
-	REPLICATION_TOPIC_PREFIX = "r/"
+	SLASH = "/"
 )
 
 const (
