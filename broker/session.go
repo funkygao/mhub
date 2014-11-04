@@ -225,6 +225,8 @@ func (this *incomingConn) heartbeat(keepAliveTimer time.Duration) {
 }
 
 func (this *incomingConn) stop() {
+	this.server.stats.aborted()
+
 	close(this.stopChan)
 }
 
