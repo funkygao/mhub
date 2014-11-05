@@ -24,6 +24,7 @@ Thanks to https://github.com/jeffallen/mqtt
 * TLS & user/pass authentication/authorization
 * rich client API with all of 5 protocol methods
   - connect, publish, (un)subscribe, disconnect
+* availability of client libraries
 
 ### Arch
 
