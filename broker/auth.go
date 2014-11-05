@@ -4,7 +4,7 @@ import (
 	proto "github.com/funkygao/mqttmsg"
 )
 
-// TODO
+// TODO block user if failed many times
 func (this *incomingConn) authenticate(username, passwd string) (ok bool) {
 	ok = true
 	return
