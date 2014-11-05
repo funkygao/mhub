@@ -95,6 +95,11 @@ func (this *incomingConn) doConnect(m *proto.Connect) (rc proto.ReturnCode) {
 
 	this.connectedAt = time.Now()
 
+	if this.server.cf.Broker.EnablePresence &&
+		m.Username != "" {
+		this.server.presence.CheckIn(m.Username)
+	}
+
 	this.submit(&proto.ConnAck{ReturnCode: rc})
 
 	return

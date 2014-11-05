@@ -34,6 +34,12 @@ type incomingConn struct {
 func (this *incomingConn) onTerminate() {
 	// TODO record session length and more
 	time.Since(this.connectedAt)
+
+	if this.server.cf.Broker.EnablePresence &&
+		this.flag.Username != "" &&
+		this.connected() {
+		this.server.presence.CheckOut(this.flag.Username)
+	}
 }
 
 // race:

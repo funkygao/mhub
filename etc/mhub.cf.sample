@@ -12,6 +12,7 @@
         client_max_publish_per_minute: 60
 
         // max_connections==0 means unlimited
+        enable_presence: true
         max_connections: 0
         io_timeout: "3s"
         stats_interval: "10s"

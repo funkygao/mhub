@@ -12,10 +12,11 @@ import (
 type Server struct {
 	cf *config.Config
 
-	stats   *stats
-	subs    *subscriptions
-	peers   *peers
-	flights *flights
+	presence *Presence
+	stats    *stats
+	subs     *subscriptions
+	peers    *peers
+	flights  *flights
 
 	Done chan struct{}
 }
@@ -25,8 +26,9 @@ func NewServer(cf *config.Config) (this *Server) {
 		statsListenAddr: cf.Broker.StatsHttpListenAddr,
 		profListenAddr:  cf.Broker.ProfHttpListenAddr}
 	this = &Server{
-		cf:    cf,
-		stats: stats,
+		cf:       cf,
+		stats:    stats,
+		presence: NewPresence(cf.Redis),
 		subs: newSubscriptions(cf.Broker.SubscriptionsWorkers,
 			cf.Broker.SubscriptionsQueueLen, stats),
 		Done: make(chan struct{}),

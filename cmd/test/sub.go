@@ -13,8 +13,8 @@ import (
 
 var host = flag.String("host", "localhost:1883", "hostname of broker")
 var id = flag.String("id", "", "client id")
-var user = flag.String("user", "", "username")
-var pass = flag.String("pass", "", "password")
+var user = flag.String("user", "funky", "username")
+var pass = flag.String("pass", "gao", "password")
 var dump = flag.Bool("dump", false, "dump messages?")
 
 func main() {

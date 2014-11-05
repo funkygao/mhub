@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// TODO not implementing Store interface
 type RedisStore struct {
 	pool *redis.Pool
 	mu   sync.Mutex // redis.Do is not goroutine safe

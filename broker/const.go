@@ -12,7 +12,8 @@ const (
 )
 
 const (
-	SLASH = "/"
+	SLASH               = "/"
+	PRESENCE_KEY_PREFIX = "_pre:"
 )
 
 const (

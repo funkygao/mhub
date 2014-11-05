@@ -11,6 +11,7 @@ type BrokerConfig struct {
 	TlsServerCert string
 	TlsServerKey  string
 
+	EnablePresence         bool
 	StatsInterval          time.Duration
 	MaxConnections         int // max concurrent client conns
 	IOTimeout              time.Duration
@@ -35,6 +36,7 @@ func (this *BrokerConfig) loadConfig(cf *conf.Conf) {
 		this.TlsServerCert = cf.String("tls_server_cert", "server.crt")
 		this.TlsServerKey = cf.String("tls_server_key", "server.key")
 	}
+	this.EnablePresence = cf.Bool("enable_presence", false)
 	this.StatsHttpListenAddr = cf.String("stats_http_listen_addr", "")
 	this.StatsInterval = cf.Duration("stats_interval", 10*time.Minute)
 	this.ProfHttpListenAddr = cf.String("prof_http_listen_addr", "")
