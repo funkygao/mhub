@@ -27,3 +27,4 @@ _testmain.go
 etc/mhub.cf
 prof/
 daemon/mhub/mhub
+panic.dump
