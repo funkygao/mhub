@@ -67,7 +67,7 @@ func subLoop() {
 
 func translate(q string) string {
 	t1 := time.Now()
-	res, err := http.Get(fmt.Sprintf("http://translate.funplusgame.com/api/translate?q=%s&source=auto&target=zh-CN&profanity=off", url.QueryEscape(q)))
+	res, err := http.Get(fmt.Sprintf("http://translate.funplusgame.com/api/translate?q=%s&source=en&target=zh-CN&profanity=off", url.QueryEscape(q)))
 	if err != nil {
 		return err.Error()
 	}
