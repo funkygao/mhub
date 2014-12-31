@@ -37,17 +37,17 @@ func main() {
 	cc.KeepAlive = 60
 	cc.ClientId = *id
 
-	tq := make([]proto.TopicQos, flag.NArg())
-	for i := 0; i < flag.NArg(); i++ {
-		tq[i].Topic = flag.Arg(i)
-		tq[i].Qos = proto.QosAtMostOnce
-	}
-
 	if err := cc.Connect(*user, *pass); err != nil {
 		fmt.Fprintf(os.Stderr, "connect: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Println("Connected with client id ", cc.ClientId)
+
+	tq := make([]proto.TopicQos, flag.NArg())
+	for i := 0; i < flag.NArg(); i++ {
+		tq[i].Topic = flag.Arg(i)
+		tq[i].Qos = proto.QosAtMostOnce
+	}
 	cc.Subscribe(tq)
 
 	for m := range cc.Incoming {

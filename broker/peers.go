@@ -28,7 +28,7 @@ func (this *peers) start(listenAddr string) error {
 
 	// add self to peers for testing, TODO kill this
 	// FIXME if true, will lead to send on closed channel err
-	if true {
+	if false {
 		host := "localhost:9090"
 		this.nodes[host] = newEndpoint(host, this.server.cf.Peers, this.server.stats)
 		go this.nodes[host].start()
