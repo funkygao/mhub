@@ -21,14 +21,25 @@ var (
 	topic  string
 	user   string
 
+	netRtt time.Duration
+
+	onlineUsers = make(map[string]bool)
+
 	cc *mqtt.ClientConn
 )
 
 func init() {
-	flag.StringVar(&server, "server", "192.168.22.73:1883", "broker addr")
-	flag.StringVar(&topic, "topic", "world", "topic name")
-	flag.StringVar(&user, "user", "anonymous", "chat user name")
+	//flag.StringVar(&server, "server", "192.168.22.73:1883", "broker addr")
+	//flag.StringVar(&server, "server", "dw-dev.socialgamenet.com:1883", "broker addr")
+	flag.StringVar(&server, "server", "localhost:1883", "broker server addr")
+	flag.StringVar(&topic, "topic", "world", "subscription topic name")
+	flag.StringVar(&user, "user", "", "chat username")
 	flag.Parse()
+
+	if user == "" {
+		flag.Usage()
+		os.Exit(0)
+	}
 }
 
 func main() {
@@ -37,20 +48,26 @@ func main() {
 }
 
 func setupChat() {
-	conn, err := net.Dial("tcp", server)
+	fmt.Println("Connecting to broker...")
+	t1 := time.Now()
+	conn, err := net.DialTimeout("tcp", server, time.Second*10)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "dial: ", err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
+	netRtt = time.Since(t1)
+
 	cc = mqtt.NewClientConn(conn, 100)
 	cc.KeepAlive = 600
 	if err := cc.Connect("", ""); err != nil {
 		fmt.Fprintf(os.Stderr, "connect: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("Broker connected with client id: ", cc.ClientId)
 
 	cc.Subscribe([]proto.TopicQos{proto.TopicQos{Topic: topic, Qos: proto.QosAtMostOnce}})
+	fmt.Printf("Broker connected, subscribed to topic: %s\n", topic)
+	fmt.Println("Translation engine connected: en -> zh-CN")
+
 	go subLoop()
 }
 
@@ -60,8 +77,9 @@ func subLoop() {
 		text = string(m.Payload.(proto.BytesPayload))
 		fmt.Printf("[%s] -> %s\n", color.Yellow(m.TopicName), color.Red(text))
 		body := strings.SplitN(text, ":", 2)
+		onlineUsers[body[0]] = true
 		fmt.Printf("[%s] => %s\n", color.Yellow(m.TopicName),
-			color.Blue(translate(body[1])))
+			color.Green(translate(body[1])))
 	}
 }
 
@@ -82,20 +100,26 @@ func translate(q string) string {
 		return fmt.Sprintf("unexpected translation status: %s", res.Status)
 	}
 
-	return fmt.Sprintf("'%s' in %s: %s", q, time.Since(t1), string(payload))
+	return fmt.Sprintf("'%s' in %s: %s", q, time.Since(t1)-netRtt, string(payload))
 }
 
 func cliLoop() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Printf("[%s] Enter text: ", topic)
+		fmt.Printf("[%s] Enter English text: ", topic)
 		text, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
+
 		text = text[:len(text)-1] // strip EOL
 		if text == "" {
+			continue
+		}
+
+		if handleCliCmd(text) {
+			// its internal command
 			continue
 		}
 
@@ -106,4 +130,25 @@ func cliLoop() {
 		})
 	}
 
+}
+
+func handleCliCmd(txt string) bool {
+	switch txt {
+	case "help":
+		fmt.Println("help users rtt")
+		return true
+
+	case "users":
+		for u, _ := range onlineUsers {
+			fmt.Printf("%s ", u)
+		}
+		fmt.Println()
+		return true
+
+	case "rtt":
+		fmt.Println(netRtt)
+		return true
+	}
+
+	return false
 }

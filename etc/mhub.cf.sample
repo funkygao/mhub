@@ -15,7 +15,7 @@
         enable_presence: true
         max_connections: 0
         io_timeout: "3s"
-        stats_interval: "10s"
+        stats_interval: "10m"
         echo: false
         client_outbound_queue_len: 100
         client_slow_threshold: "100ms"
