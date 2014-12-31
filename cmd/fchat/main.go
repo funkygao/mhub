@@ -7,8 +7,13 @@ import (
 	"github.com/funkygao/golib/color"
 	mqtt "github.com/funkygao/mhub/broker"
 	proto "github.com/funkygao/mqttmsg"
+	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
+	"strings"
+	"time"
 )
 
 var (
@@ -54,14 +59,41 @@ func subLoop() {
 	for m := range cc.Incoming {
 		text = string(m.Payload.(proto.BytesPayload))
 		fmt.Printf("[%s] -> %s\n", color.Yellow(m.TopicName), color.Red(text))
+		body := strings.SplitN(text, ":", 2)
+		fmt.Printf("[%s] => %s\n", color.Yellow(m.TopicName),
+			color.Blue(translate(body[1])))
 	}
+}
+
+func translate(q string) string {
+	t1 := time.Now()
+	res, err := http.Get(fmt.Sprintf("http://translate.funplusgame.com/api/translate?q=%s&source=auto&target=zh-CN&profanity=off", url.QueryEscape(q)))
+	if err != nil {
+		return err.Error()
+	}
+	defer res.Body.Close()
+
+	payload, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err.Error()
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Sprintf("unexpected translation status: %s", res.Status)
+	}
+
+	return fmt.Sprintf("'%s' in %s: %s", q, time.Since(t1), string(payload))
 }
 
 func cliLoop() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Printf("[%s] Enter text: ", topic)
-		text, _ := reader.ReadString('\n')
+		text, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 		text = text[:len(text)-1] // strip EOL
 		if text == "" {
 			continue
