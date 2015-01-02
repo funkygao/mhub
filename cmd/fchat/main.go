@@ -18,7 +18,7 @@ import (
 
 var (
 	server string
-	topic  string
+	topic  string = "funplus"
 	user   string
 
 	netRtt time.Duration
@@ -29,14 +29,12 @@ var (
 )
 
 func init() {
-	//flag.StringVar(&server, "server", "192.168.22.73:1883", "broker addr")
-	//flag.StringVar(&server, "server", "dw-dev.socialgamenet.com:1883", "broker addr")
-	flag.StringVar(&server, "server", "localhost:1883", "broker server addr")
-	flag.StringVar(&topic, "topic", "world", "subscription topic name")
-	flag.StringVar(&user, "user", "", "chat username")
+	flag.StringVar(&user, "user", "", "chat username(required)")
+	flag.StringVar(&server, "server", "dw-dev.socialgamenet.com:1883", "broker server addr")
 	flag.Parse()
 
 	if user == "" {
+		fmt.Fprintf(os.Stderr, "Must specify chat username\n\n")
 		flag.Usage()
 		os.Exit(0)
 	}
@@ -48,7 +46,7 @@ func main() {
 }
 
 func setupChat() {
-	fmt.Println("Connecting to broker...")
+	fmt.Printf("Connecting to broker %s...\n", server)
 	t1 := time.Now()
 	conn, err := net.DialTimeout("tcp", server, time.Second*10)
 	if err != nil {
@@ -58,6 +56,7 @@ func setupChat() {
 	netRtt = time.Since(t1)
 
 	cc = mqtt.NewClientConn(conn, 100)
+	cc.Dump = false
 	cc.KeepAlive = 600
 	if err := cc.Connect("", ""); err != nil {
 		fmt.Fprintf(os.Stderr, "connect: %v\n", err)
@@ -66,6 +65,7 @@ func setupChat() {
 
 	cc.Subscribe([]proto.TopicQos{proto.TopicQos{Topic: topic, Qos: proto.QosAtMostOnce}})
 	fmt.Printf("Broker connected, subscribed to topic: %s\n", topic)
+	fmt.Printf("Network latency: %s\n", netRtt)
 	fmt.Println("Translation engine connected: en -> zh-CN")
 
 	go subLoop()
@@ -75,7 +75,9 @@ func subLoop() {
 	var text string
 	for m := range cc.Incoming {
 		text = string(m.Payload.(proto.BytesPayload))
-		fmt.Printf("[%s] -> %s\n", color.Yellow(m.TopicName), color.Red(text))
+		fmt.Printf("[%s] [%s] -> %s\n", color.Yellow(m.TopicName),
+			color.Yellow(time.Now().Format("01-02 15:04:05")),
+			color.Red(text))
 		body := strings.SplitN(text, ":", 2)
 		onlineUsers[body[0]] = true
 		fmt.Printf("[%s] => %s\n", color.Yellow(m.TopicName),
@@ -100,7 +102,7 @@ func translate(q string) string {
 		return fmt.Sprintf("unexpected translation status: %s", res.Status)
 	}
 
-	return fmt.Sprintf("'%s' in %s: %s", q, time.Since(t1)-netRtt, string(payload))
+	return fmt.Sprintf("'%s' in %s: %s", q, time.Since(t1), string(payload))
 }
 
 func cliLoop() {
