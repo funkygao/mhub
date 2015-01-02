@@ -28,3 +28,4 @@ etc/mhub.cf
 prof/
 daemon/mhub/mhub
 panic.dump
+cmd/fchat/fchat
