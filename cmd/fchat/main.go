@@ -149,6 +149,7 @@ func handleCliCmd(txt string) bool {
 
 	case "whoami":
 		fmt.Println(user)
+		return true
 
 	case "rtt":
 		fmt.Println(netRtt)
