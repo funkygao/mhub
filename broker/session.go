@@ -48,7 +48,9 @@ func (this *incomingConn) onTerminate() {
 func (this *incomingConn) inboundLoop() {
 	defer func() {
 		this.server.stats.clientDisconnect()
-		this.store.Close()
+		if this.store != nil {
+			this.store.Close()
+		}
 
 		this.alive = false // to avoid send on closed channel subs.c.submit FIXME
 		close(this.jobs)   // will terminate outboundLoop
