@@ -137,15 +137,18 @@ func cliLoop() {
 func handleCliCmd(txt string) bool {
 	switch txt {
 	case "help":
-		fmt.Println("help users rtt")
+		fmt.Println("help w who whoami rtt")
 		return true
 
-	case "users":
+	case "w", "who":
 		for u, _ := range onlineUsers {
 			fmt.Printf("%s ", u)
 		}
 		fmt.Println()
 		return true
+
+	case "whoami":
+		fmt.Println(user)
 
 	case "rtt":
 		fmt.Println(netRtt)
