@@ -68,6 +68,14 @@ func setupChat() {
 	fmt.Printf("Network latency: %s\n", netRtt)
 	fmt.Println("Translation engine connected: en -> zh-CN")
 
+	// broadcast the new chat user
+	cc.Publish(&proto.Publish{
+		Header:    proto.Header{},
+		TopicName: topic,
+		Payload: proto.BytesPayload([]byte(fmt.Sprintf("%s:%s joined in chatroom[%s]",
+			user, user, topic))),
+	})
+
 	go subLoop()
 }
 
