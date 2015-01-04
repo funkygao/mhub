@@ -90,6 +90,7 @@ Thanks to https://github.com/jeffallen/mqtt
 
 ### TODO
 
+*   subscribe to fun+, publish to fun+, not recved
 *   peers broadcast Subscribe problem is new broker don't know subscribed endpoints
 *   why job chan got full under loadtest
 *   cluster of brokers, scales with the number of MQTT clients
