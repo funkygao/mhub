@@ -34,5 +34,6 @@ func init() {
 		server.ShowVersionAndExit()
 	}
 
-	server.SetupLogging(option.logFile, option.logLevel, option.crashLogFile)
+	server.SetupLogging(option.logFile, option.logLevel, option.crashLogFile,
+		"", "")
 }

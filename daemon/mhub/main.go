@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/funkygao/golib/profile"
+	"github.com/funkygao/golib/profiler"
 	"github.com/funkygao/golib/server"
 	"github.com/funkygao/mhub/broker"
 	"github.com/funkygao/mhub/config"
@@ -18,7 +18,7 @@ func main() {
 	}()
 
 	if option.cpuProf || option.memProf {
-		cfg := &profile.Config{
+		cfg := &profiler.Config{
 			Quiet:        true,
 			ProfilePath:  "prof",
 			CPUProfile:   option.cpuProf,
@@ -26,7 +26,7 @@ func main() {
 			BlockProfile: option.blockProf,
 		}
 
-		defer profile.Start(cfg).Stop()
+		defer profiler.Start(cfg).Stop()
 	}
 
 	server := server.NewServer("mhub")

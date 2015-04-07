@@ -104,7 +104,7 @@ func (this *stats) start() {
 		lastPackets = totalPackets
 
 		log.Info("ver:%s, since:%s, go:%d, gc:%dms/%d=%d, heap:{%s, %s, %s, %s} cpu:{%3.2f%%us, %3.2f%%sy}",
-			server.BuildID,
+			server.BuildId,
 			time.Since(startedAt),
 			runtime.NumGoroutine(),
 			ms.PauseTotalNs/nsInMs,
@@ -131,7 +131,7 @@ func (this *stats) launchHttpServ() {
 		return
 	}
 
-	server.LaunchHttpServ(this.statsListenAddr, this.profListenAddr)
+	server.LaunchHttpServer(this.statsListenAddr, this.profListenAddr)
 	server.RegisterHttpApi("/s/{cmd}",
 		func(w http.ResponseWriter, req *http.Request,
 			params map[string]interface{}) (interface{}, error) {
@@ -140,7 +140,7 @@ func (this *stats) launchHttpServ() {
 }
 
 func (this *stats) stopHttpServ() {
-	server.StopHttpServ()
+	server.StopHttpServer()
 }
 
 func (this *stats) handleHttpQuery(w http.ResponseWriter, req *http.Request,
@@ -156,7 +156,7 @@ func (this *stats) handleHttpQuery(w http.ResponseWriter, req *http.Request,
 		output["status"] = "ok"
 
 	case "ver":
-		output["ver"] = server.BuildID
+		output["ver"] = server.BuildId
 
 	case "trace":
 		stack := make([]byte, 1<<20)

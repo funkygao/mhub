@@ -14,8 +14,9 @@ if [[ $1 = "-prof" ]]; then
 fi
 
 cd $mhub_dir
+VER=0.1.1rc
 ID=$(git rev-parse HEAD | cut -c1-7)
-go build -ldflags "-X github.com/funkygao/golib/server.BuildID $ID -w"
+go build -ldflags "-X github.com/funkygao/golib/server.Version $VER -X github.com/funkygao/golib/server.BuildId $ID -w"
 #go build -race -v -ldflags "-X github.com/funkygao/golib/server.BuildID $ID -w"
 
 #---------
