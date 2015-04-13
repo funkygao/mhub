@@ -52,6 +52,22 @@ Thanks to https://github.com/jeffallen/mqtt
                           etcd cluster
 
 
+
+          device      device      device    
+           |             |          |
+           |  +----------+          |
+           |  |                     |
+        +--------+  +--------+  +--------+  +--------+  +--------+
+        | broker |  | broker |  | broker |  | broker |  | broker |
+        +--------+  +--------+  +--------+  +--------+  +--------+
+            |           |           |           |           |
+            +-----------------------------------------------+
+                              |
+                       +--------------+
+                       | topic broker |
+                       +--------------+
+
+
 ### Features
 
 *   QoS1 fully implemented
